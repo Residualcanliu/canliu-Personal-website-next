@@ -29,7 +29,7 @@ export default function BlackHole({ onReady }) {
     K.position.z = 1;
     const RE = new THREE.Vector2(innerWidth, innerHeight);
 
-    // Canvas texture
+    // Canvas texture — shared draw function so clock updates
     const tc = document.createElement("canvas");
     tc.width = 2048;
     tc.height = 512;
@@ -37,17 +37,35 @@ export default function BlackHole({ onReady }) {
     tx.textAlign = "center";
     tx.textBaseline = "middle";
     tx.shadowColor = "rgba(180,210,255,0.5)";
-    tx.font = "400 20px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-    tx.shadowBlur = 4;
-    tx.fillStyle = "rgba(255,255,255,0.22)";
-    tx.fillText("点击星图或右上角查看各个栏目", 1024, 195);
-    tx.font = "600 80px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-    tx.shadowBlur = 30;
-    tx.fillStyle = "rgba(255,255,255,0.95)";
-    tx.fillText("欢迎来到我的频道", 1024, 256);
     const te = new THREE.CanvasTexture(tc);
     te.minFilter = THREE.LinearFilter;
     te.magFilter = THREE.LinearFilter;
+
+    function drawTexture() {
+      tx.clearRect(0, 0, tc.width, tc.height);
+      // Clock — 年月日时分秒, small, 70% transparent, below nav bar
+      const n = new Date();
+      const pad = (v) => String(v).padStart(2, "0");
+      const ts = n.getFullYear() + "-" + pad(n.getMonth() + 1) + "-" + pad(n.getDate()) + " " +
+        pad(n.getHours()) + ":" + pad(n.getMinutes()) + ":" + pad(n.getSeconds());
+      tx.shadowBlur = 6;
+      tx.font = "400 20px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      tx.fillStyle = "rgba(255,255,255,0.5)";
+      tx.fillText(ts, 1024, 90);
+      // Hint
+      tx.font = "400 20px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      tx.shadowBlur = 4;
+      tx.fillStyle = "rgba(255,255,255,0.22)";
+      tx.fillText("点击星图或右上角查看各个栏目", 1024, 195);
+      // Main title
+      tx.font = "600 80px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      tx.shadowBlur = 30;
+      tx.fillStyle = "rgba(255,255,255,0.95)";
+      tx.fillText("欢迎来到我的频道", 1024, 256);
+      te.needsUpdate = true;
+    }
+    drawTexture();
+    const clockTimer = setInterval(drawTexture, 1000);
 
     const U = {
       uRes: { value: RE },
@@ -317,6 +335,7 @@ export default function BlackHole({ onReady }) {
 
     return () => {
       cancelAnimationFrame(animId);
+      clearInterval(clockTimer);
       window.removeEventListener("keydown", handleKey);
       window.removeEventListener("resize", handleResize);
       R.dispose();

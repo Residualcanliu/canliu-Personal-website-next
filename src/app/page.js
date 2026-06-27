@@ -55,7 +55,18 @@ export default function Home() {
 
       <div className={"panel" + (current === "profile" ? " on" : "")} id="pn-profile">
         <button className="close" onClick={hide}>&times;</button>
-        <span>♌ 狮子座 · 个人</span>
+        <div className="pn-home-layout">
+          <div className="left">
+            <div className="avatar">🌌</div>
+            <div style={{ fontSize: ".95rem", color: "rgba(255,255,255,.7)" }}>gch</div>
+            <div className="status">🟢 探索宇宙中</div>
+          </div>
+          <div className="right">
+            <h2>♌ 狮子座 · 个人</h2>
+            <div className="bio">欢迎来到我的个人空间。这里记录了我的项目、文章和想法。</div>
+            <div className="tags"><span>Three.js</span><span>GLSL</span><span>WebGL</span><span>个人博客</span></div>
+          </div>
+        </div>
         <a className="home-btn" onClick={hide}>← 返回主页</a>
       </div>
 
