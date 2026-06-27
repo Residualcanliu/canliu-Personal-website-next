@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--nav-bg:rgba(4,4,16,0.78);--nav-fg:rgba(255,255,255,0.85);--nav-muted:rgba(255,255,255,0.42);--nav-hover:rgba(255,255,255,0.10)}
+html,body{width:100vw;height:100vh;overflow:hidden;background:#020208;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;touch-action:none}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;
+  height:54px;padding:0 28px;background:var(--nav-bg);backdrop-filter:blur(16px) saturate(140%);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);border-bottom:1px solid rgba(255,255,255,0.05)}
+nav .brand{font-size:1.05rem;font-weight:600;color:var(--nav-fg);letter-spacing:0.02em}
+nav .links{display:flex;gap:6px;align-items:center}
+nav .links a{color:var(--nav-muted);text-decoration:none;font-size:0.88rem;padding:6px 14px;border-radius:7px;transition:color 0.2s,background 0.2s;cursor:pointer}
+nav .links a:hover{color:var(--nav-fg);background:var(--nav-hover)}
+#bg{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hint{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:60;font-size:0.8rem;
+  color:rgba(255,255,255,0.3);pointer-events:none;letter-spacing:0.04em}
+.cz{position:fixed;z-index:50;width:22vmin;height:22vmin;cursor:pointer;transition:opacity .5s}
+.cz:hover{opacity:1!important}.cz.ly{top:8vh;left:8vw}.cz.cy{bottom:8vh;right:8vw}
+.cz.le{top:8vh;right:8vw}.cz.or{bottom:8vh;left:8vw}
+.panel{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:80;background:rgba(2,2,12,.65);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .5s;color:#fff;font-size:1.4rem}
+.panel.on{opacity:1;pointer-events:auto}
+.panel .close{position:absolute;top:24px;right:28px;font-size:2.2rem;cursor:pointer;color:rgba(255,255,255,.35);
+  transition:color .2s;background:none;border:none;z-index:5;line-height:1}
+.panel .close:hover{color:#fff}
+.panel .home-btn{margin-top:2rem;color:rgba(255,255,255,.4);text-decoration:none;font-size:.9rem;
+  transition:color .3s;cursor:pointer}
+.panel .home-btn:hover{color:#fff}
+.pn-home-layout{display:flex;width:80vw;max-width:900px;gap:48px;align-items:center}
+.pn-home-layout .left{flex:0 0 200px;text-align:center}
+.pn-home-layout .left .avatar{width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06);
+  border:2px solid rgba(255,255,255,.15);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:3rem}
+.pn-home-layout .left .status{font-size:.8rem;color:rgba(255,255,255,.35)}
+.pn-home-layout .right{flex:1;min-width:0}
+.pn-home-layout .right h2{font-size:1.6rem;margin-bottom:8px;font-weight:500}
+.pn-home-layout .right .bio{font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:20px}
+.pn-home-layout .right .tags{display:flex;flex-wrap:wrap;gap:8px}
+.pn-home-layout .right .tags span{font-size:.75rem;padding:4px 12px;border-radius:12px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5)}
+@media(max-width:640px){nav{padding:0 14px;height:48px}nav .brand{font-size:0.9rem}nav .links a{font-size:0.78rem;padding:5px 10px}.hint{bottom:18px;font-size:0.7rem}.cz{width:30vmin;height:30vmin}.pn-home-layout{flex-direction:column;gap:24px;text-align:center}.pn-home-layout .left{flex:0 0 auto}}
