@@ -32,7 +32,7 @@ export default async function AdminDashboard() {
   return (
     <div style={{ padding: "36px 32px", maxWidth: 960 }}>
       <h2 style={{ fontSize: "1.4rem", fontWeight: 500, marginBottom: 6 }}>
-        👋 欢迎，{session.user.name}
+        欢迎，{session.user.name}
       </h2>
       <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.85rem", marginBottom: 32 }}>
         管理后台概览

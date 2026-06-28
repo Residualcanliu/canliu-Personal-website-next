@@ -5,12 +5,12 @@ import { signOut } from "next-auth/react";
 import Link from "next/link";
 
 const NAV = [
-  { href: "/admin", label: "首页", icon: "🏠" },
-  { href: "/admin/analytics", label: "访问统计", icon: "📈" },
-  { href: "/admin/articles", label: "文章管理", icon: "📝" },
-  { href: "/admin/projects", label: "项目管理", icon: "🚀" },
-  { href: "/admin/pegasus", label: "天马座存档", icon: "🦄" },
-  { href: "/admin/settings", label: "设置", icon: "⚙" },
+  { href: "/admin", label: "首页" },
+  { href: "/admin/analytics", label: "访问统计" },
+  { href: "/admin/articles", label: "文章管理" },
+  { href: "/admin/projects", label: "项目管理" },
+  { href: "/admin/pegasus", label: "天马座存档" },
+  { href: "/admin/settings", label: "设置" },
 ];
 
 export default function AdminLayout({ children }) {
@@ -56,7 +56,7 @@ export default function AdminLayout({ children }) {
               letterSpacing: "0.02em",
             }}
           >
-            ⚙ 管理后台
+            管理后台
           </Link>
         </div>
 
@@ -90,7 +90,6 @@ export default function AdminLayout({ children }) {
                   fontWeight: active ? 500 : 400,
                 }}
               >
-                <span style={{ fontSize: "1.05rem" }}>{item.icon}</span>
                 {item.label}
               </Link>
             );

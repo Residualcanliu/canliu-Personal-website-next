@@ -35,7 +35,7 @@ function LoginContent() {
           }}
         >
           {error === "unauthorized"
-            ? "⛔ 此 GitHub 账号未被授权登录管理后台"
+            ? "此 GitHub 账号未被授权登录管理后台"
             : `登录失败 [${error}]，请检查 GitHub OAuth App 配置或联系管理员`}
         </p>
       )}
