@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 
-export default function Guestbook() {
+export default function Guestbook({ onBack }) {
   const [messages, setMessages] = useState([]);
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
@@ -104,12 +104,25 @@ export default function Guestbook() {
         bottom: 0,
         left: 0,
         right: 0,
-        padding: "20px 0 28px",
+        padding: "12px 0 28px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         zIndex: 3,
       }}>
+        <a onClick={onBack} style={{
+          marginBottom: 10,
+          fontSize: ".78rem",
+          color: "rgba(255,255,255,0.3)",
+          cursor: "pointer",
+          textDecoration: "none",
+          transition: "color 0.2s",
+        }}
+          onMouseEnter={(e) => e.target.style.color = "rgba(255,255,255,0.6)"}
+          onMouseLeave={(e) => e.target.style.color = "rgba(255,255,255,0.3)"}
+        >
+          ← 返回主页
+        </a>
         {!showForm && !submitted && (
           <button
             onClick={() => setShowForm(true)}

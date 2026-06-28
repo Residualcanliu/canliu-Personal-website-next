@@ -146,7 +146,6 @@ export default function Home() {
 
       <div className={"panel" + (current === "profile" ? " on" : "")} id="pn-profile">
         <button className="close" onClick={hide}>&times;</button>
-        <a className="home-btn" onClick={hide} style={{ position: "absolute", top: 28, left: 28, margin: 0, fontSize: ".82rem", zIndex: 6 }}>← 返回主页</a>
         <div className="pn-home-layout" style={{ marginTop: 40 }}>
           <div className="left">
             <img src="/cat.jpg" alt="avatar" className="avatar-img" />
@@ -175,7 +174,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <Guestbook />
+        <Guestbook onBack={hide} />
       </div>
 
       <div className={"panel" + (current === "or" ? " on" : "")} id="pn-or">
