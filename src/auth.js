@@ -38,9 +38,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     session({ session, user }) {
       if (user) {
-        session.user.isAdmin = adminUsers.includes(
-          (session.user.name || "").toLowerCase()
-        );
+        const name = (user.name || "").toLowerCase();
+        const gh = (user.githubUsername || "").toLowerCase();
+        session.user.isAdmin =
+          adminUsers.includes(name) || adminUsers.includes(gh);
       }
       return session;
     },
