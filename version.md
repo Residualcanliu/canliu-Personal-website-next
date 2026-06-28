@@ -1,5 +1,53 @@
 # Version History — canliu-personal-website
 
+## v2.4 (2026-06-28) — 阶段 B：文章 CRUD 系统
+
+**新增文件：**
+| 文件 | 说明 |
+|------|------|
+| `src/app/api/admin/articles/route.js` | GET 列表 + POST 创建（admin 鉴权） |
+| `src/app/api/admin/articles/[id]/route.js` | GET / PUT / DELETE 单篇（admin 鉴权） |
+| `src/app/api/articles/route.js` | GET 公开列表（仅已发布） |
+| `src/app/api/articles/[slug]/route.js` | GET 公开单篇（按 slug） |
+| `src/app/admin/articles/page.js` | 文章管理列表页（编辑/删除） |
+| `src/app/admin/articles/ArticleForm.jsx` | 共享编辑器组件（标题/slug/摘要/正文/发布） |
+| `src/app/admin/articles/new/page.js` | 新建文章页 |
+| `src/app/admin/articles/[id]/edit/page.js` | 编辑文章页 |
+
+**改动文件：**
+| 文件 | 改动 |
+|------|------|
+| `src/middleware.js` | matcher 增加 `/api/admin/:path*` 保护 |
+| `src/app/admin/page.js` | 仪表盘「文章」卡片可点击跳转 |
+
+## v2.3 (2026-06-28) — 阶段 A：数据库 + OAuth 登录 + admin 后台
+
+**新增依赖：** `next-auth@5.0.0-beta.31` `@auth/drizzle-adapter` `drizzle-orm` `@neondatabase/serverless` `drizzle-kit`
+
+**新增文件：**
+| 文件 | 说明 |
+|------|------|
+| `src/db/schema.js` | Drizzle 表定义：user / account / session / article / visitLog |
+| `src/db/index.js` | Neon 数据库连接 (HTTP) |
+| `src/auth.js` | Auth.js 配置：GitHub OAuth + DrizzleAdapter + admin 白名单 |
+| `src/app/api/auth/[...nextauth]/route.js` | Auth.js API 路由 |
+| `src/middleware.js` | /admin 路径鉴权拦截 |
+| `src/app/admin/page.js` | 后台仪表盘（登录后可见） |
+| `src/app/admin/layout.js` | 后台布局 |
+| `src/app/admin/login/page.js` | GitHub 登录页（含错误码显示） |
+| `drizzle.config.js` | Drizzle Kit 配置 |
+| `.env.local` | 本地环境变量（DATABASE_URL / AUTH_SECRET / AUTH_GITHUB_ID / AUTH_GITHUB_SECRET / ADMIN_GITHUB_USERS） |
+
+**排错记录：** 登录 Configuration 错误 → 根因是 Vercel 环境变量 Key 名与代码 `process.env` 不匹配（`SECRET_KEY` ≠ `AUTH_SECRET` 等），改名 + 补 `AUTH_URL` 后修复。
+
+## v2.2 (2026-06-28) — 星座星图优化
+
+| 文件 | 改动 |
+|------|------|
+| `src/components/BlackHole.jsx` | 星点亮度 w .85→.35，连线亮度 lc .5→.22，高斯扩散 .00008→.000022 |
+| `src/app/globals.css` | 星座热区 22vmin→14vmin，修正四角 CSS 定位（之前 le/ly/or 位置错乱） |
+| `src/app/page.js` | CORNERS 映射修正：cls → 星座 → 面板一一对应 |
+
 ## v2.1 (2026-06-28)
 
 | 文件 | 改动 |

@@ -1,5 +1,6 @@
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -60,7 +61,7 @@ export default async function AdminPage() {
           欢迎回来，{session.user.name}。后台功能将逐步完善。
         </p>
 
-        {/* 占位卡片 */}
+        {/* 快捷入口 */}
         <div
           style={{
             display: "grid",
@@ -69,30 +70,42 @@ export default async function AdminPage() {
           }}
         >
           {[
-            { label: "文章", value: "—", hint: "即将接入" },
+            { label: "文章", value: "管理", hint: "写文章 / 编辑 / 发布", href: "/admin/articles" },
             { label: "今日访问", value: "—", hint: "统计开发中" },
             { label: "总访问量", value: "—", hint: "统计开发中" },
-          ].map((c) => (
-            <div
-              key={c.label}
-              style={{
-                padding: "22px 20px",
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.06)",
-                borderRadius: 10,
-              }}
-            >
-              <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.35)" }}>
-                {c.label}
+          ].map((c) => {
+            const card = (
+              <div
+                key={c.label}
+                style={{
+                  padding: "22px 20px",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: 10,
+                  ...(c.href
+                    ? { cursor: "pointer", transition: "background 0.2s" }
+                    : {}),
+                }}
+              >
+                <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.35)" }}>
+                  {c.label}
+                </div>
+                <div style={{ fontSize: "2rem", fontWeight: 600, marginTop: 6 }}>
+                  {c.value}
+                </div>
+                <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.2)", marginTop: 4 }}>
+                  {c.hint}
+                </div>
               </div>
-              <div style={{ fontSize: "2rem", fontWeight: 600, marginTop: 6 }}>
-                {c.value}
-              </div>
-              <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.2)", marginTop: 4 }}>
-                {c.hint}
-              </div>
-            </div>
-          ))}
+            );
+            return c.href ? (
+              <Link key={c.label} href={c.href} style={{ textDecoration: "none", color: "inherit" }}>
+                {card}
+              </Link>
+            ) : (
+              card
+            );
+          })}
         </div>
       </main>
     </div>
