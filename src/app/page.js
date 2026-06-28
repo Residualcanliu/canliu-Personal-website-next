@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import BlackHole from "@/components/BlackHole";
 
 const PAGES = [
@@ -20,6 +20,18 @@ const CORNERS = [
 
 export default function Home() {
   const [current, setCurrent] = useState(null);
+  const [showCfg, setShowCfg] = useState(false);
+  const [speed, setSpeed] = useState(50);
+  const [attract, setAttract] = useState(0.45);
+  const bhRef = useRef(null);
+
+  // 把设置直接写到 ref 对象上（动画循环读 selfRef.current.speed / .attract）
+  useEffect(() => {
+    if (bhRef.current) {
+      bhRef.current.speed = speed;
+      bhRef.current.attract = attract;
+    }
+  }, [speed, attract]);
 
   const show = useCallback((id) => {
     if (current === id) return setCurrent(null);
@@ -36,10 +48,73 @@ export default function Home() {
 
   return (
     <>
-      <BlackHole />
+      <BlackHole ref={bhRef} />
 
       <nav>
-        <span className="brand">✦ 我的空间</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <span className="brand">✦ 我的空间</span>
+
+          {/* 黑洞控制 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {!showCfg ? (
+            <button
+              onClick={() => setShowCfg(true)}
+              style={{
+                padding: "3px 12px",
+                fontSize: "0.78rem",
+                color: "rgba(255,255,255,0.5)",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 5,
+                cursor: "pointer",
+              }}
+            >
+              控制黑洞
+            </button>
+          ) : (
+            <>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.75rem", color: "rgba(255,255,255,0.7)", whiteSpace: "nowrap" }}>
+                速度
+                <input
+                  type="range"
+                  min="20"
+                  max="160"
+                  value={speed}
+                  onChange={(e) => setSpeed(Number(e.target.value))}
+                  style={{ width: 80, accentColor: "rgba(140,180,255,0.8)" }}
+                />
+                <span style={{ minWidth: 28, textAlign: "right", color: "rgba(255,255,255,0.5)", fontSize: "0.7rem" }}>{speed}</span>
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.75rem", color: "rgba(255,255,255,0.7)", whiteSpace: "nowrap" }}>
+                吸附
+                <input
+                  type="range"
+                  min="15"
+                  max="65"
+                  value={Math.round(attract * 100)}
+                  onChange={(e) => setAttract(Number(e.target.value) / 100)}
+                  style={{ width: 80, accentColor: "rgba(140,180,255,0.8)" }}
+                />
+                <span style={{ minWidth: 28, textAlign: "right", color: "rgba(255,255,255,0.5)", fontSize: "0.7rem" }}>{Math.round(attract * 100)}%</span>
+              </label>
+              <button
+                onClick={() => setShowCfg(false)}
+                style={{
+                  padding: "2px 8px",
+                  fontSize: "0.7rem",
+                  color: "rgba(255,255,255,0.35)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                x
+              </button>
+            </>
+          )}
+          </div>
+        </div>
+
         <div className="links">
           {PAGES.map((p) => (
             <a key={p.id} onClick={() => (p.id === "home" ? hide() : show(p.id))}>

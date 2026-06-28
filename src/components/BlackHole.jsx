@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import * as THREE from "three";
 
-export default function BlackHole({ onReady }) {
+const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
   const canvasRef = useRef(null);
+  const selfRef = useRef({ speed: 50, attract: 0.45 });
+
+  useImperativeHandle(ref, () => selfRef.current, []);
 
   useEffect(() => {
     const c = canvasRef.current;
@@ -70,7 +73,7 @@ export default function BlackHole({ onReady }) {
     const U = {
       uRes: { value: RE },
       uTime: { value: 0 },
-      uBH: { value: new THREE.Vector2(innerWidth * 0.5, innerHeight * 0.45) },
+      uBH: { value: new THREE.Vector2(innerWidth * 0.5, innerHeight * 0.78) },
       uRadius: { value: 0 },
       uTex: { value: te },
       uMouse: { value: new THREE.Vector2(0.5, 0.5) },
@@ -252,11 +255,11 @@ export default function BlackHole({ onReady }) {
 
     // State
     const TR = Math.min(innerWidth, innerHeight) * 0.035;
-    const bhTarget = { x: innerWidth * 0.5, y: innerHeight * 0.45 };
-    const bh = { x: innerWidth * 0.5, y: innerHeight * 0.45, radius: 0, animStart: performance.now(), animDur: 3200 };
-    const mouse = { x: innerWidth * 0.5, y: innerHeight * 0.45 };
+    const bhTarget = { x: innerWidth * 0.5, y: innerHeight * 0.78 };
+    const bh = { x: innerWidth * 0.5, y: innerHeight * 0.78, radius: 0, animStart: performance.now(), animDur: 3200 };
+    const mouse = { x: innerWidth * 0.5, y: innerHeight * 0.78 };
     let mouseOn = false;
-    const camDrift = { x: 0, y: 0, zoom: 0, waypointX: innerWidth * 0.5, waypointY: innerHeight * 0.45 };
+    const camDrift = { x: 0, y: 0, zoom: 0, waypointX: innerWidth * 0.5, waypointY: innerHeight * 0.78 };
 
     c.addEventListener("pointermove", function (e) {
       const rect = c.getBoundingClientRect();
@@ -267,7 +270,7 @@ export default function BlackHole({ onReady }) {
     c.addEventListener("pointerleave", () => { mouseOn = false; });
 
     const handleKey = (e) => {
-      if (e.key.toLowerCase() === "r") { e.preventDefault(); bhTarget.x = innerWidth * 0.5; bhTarget.y = innerHeight * 0.45; }
+      if (e.key.toLowerCase() === "r") { e.preventDefault(); bhTarget.x = innerWidth * 0.5; bhTarget.y = innerHeight * 0.78; }
     };
     window.addEventListener("keydown", handleKey);
 
@@ -295,7 +298,8 @@ export default function BlackHole({ onReady }) {
       // BH movement
       const dx = mouse.x - bh.x, dy = mouse.y - bh.y;
       const distToMouse = Math.sqrt(dx * dx + dy * dy);
-      const attractRange = Math.min(innerWidth, innerHeight) * 0.45;
+      const s = selfRef.current;
+      const attractRange = Math.min(innerWidth, innerHeight) * s.attract;
       const distToTarget = Math.sqrt((bh.x - camDrift.waypointX) ** 2 + (bh.y - camDrift.waypointY) ** 2);
       camDrift.zoom -= dt;
       if (camDrift.zoom <= 0 || distToTarget < 60) {
@@ -312,7 +316,9 @@ export default function BlackHole({ onReady }) {
       }
       let tx = bhTarget.x - bh.x, ty = bhTarget.y - bh.y;
       const td = Math.sqrt(tx * tx + ty * ty);
-      const speed = (mouseOn && distToMouse < attractRange) ? 120 : 50;
+      const patrolSpeed = s.speed;
+      const chaseSpeed = patrolSpeed * 2.4;
+      const speed = (mouseOn && distToMouse < attractRange) ? chaseSpeed : patrolSpeed;
       if (td > 1) { const step = Math.min(speed * dt, td); bh.x += tx / td * step; bh.y += ty / td * step; }
       bh.x = Math.min(innerWidth - 5, Math.max(5, bh.x));
       bh.y = Math.min(innerHeight - 5, Math.max(5, bh.y));
@@ -345,4 +351,6 @@ export default function BlackHole({ onReady }) {
   }, []);
 
   return <canvas id="bg" ref={canvasRef} />;
-}
+});
+
+export default BlackHole;
