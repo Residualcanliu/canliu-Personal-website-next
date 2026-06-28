@@ -61,7 +61,7 @@ export default function AdminLayout({ children }) {
         </div>
 
         {/* Navigation */}
-        <nav style={{ flex: 1, padding: "8px 10px" }}>
+        <nav style={{ flex: 1, padding: "8px 10px", position: "static", display: "block", height: "auto", background: "none", border: "none", backdropFilter: "none" }}>
           {NAV.map((item) => {
             const active =
               item.href === "/admin"
