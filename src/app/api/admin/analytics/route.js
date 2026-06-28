@@ -11,60 +11,57 @@ export async function GET() {
   }
 
   try {
-    // 最近 30 天每日访问量
-    const dailyRows = await db
-      .select({
-        day: sql`DATE(${visitLogs.createdAt})`,
-        cnt: count(),
-      })
-      .from(visitLogs)
-      .where(gte(visitLogs.createdAt, sql`CURRENT_DATE - INTERVAL '29 days'`))
-      .groupBy(sql`DATE(${visitLogs.createdAt})`)
-      .orderBy(sql`DATE(${visitLogs.createdAt})`);
-
-    // 最近 7 天每小时热力图
-    const hourlyRows = await db
-      .select({
-        dow: sql`EXTRACT(DOW FROM ${visitLogs.createdAt})::int`,
-        hour: sql`EXTRACT(HOUR FROM ${visitLogs.createdAt})::int`,
-        cnt: count(),
-      })
-      .from(visitLogs)
-      .where(gte(visitLogs.createdAt, sql`CURRENT_DATE - INTERVAL '6 days'`))
-      .groupBy(
-        sql`EXTRACT(DOW FROM ${visitLogs.createdAt})`,
-        sql`EXTRACT(HOUR FROM ${visitLogs.createdAt})`
-      )
-      .orderBy(
-        sql`EXTRACT(DOW FROM ${visitLogs.createdAt})`,
-        sql`EXTRACT(HOUR FROM ${visitLogs.createdAt})`
-      );
-
-    // 文章总数 / 总访问 / 今日访问
-    const [articleRow] = await db.select({ n: count() }).from(articles);
-    const [totalRow] = await db.select({ n: count() }).from(visitLogs);
-    const [todayRow] = await db
-      .select({ n: count() })
-      .from(visitLogs)
-      .where(gte(visitLogs.createdAt, sql`CURRENT_DATE`));
-
-    // Top 页面
-    const topPages = await db
-      .select({
-        path: visitLogs.path,
-        cnt: count(),
-      })
-      .from(visitLogs)
-      .where(gte(visitLogs.createdAt, sql`CURRENT_DATE - INTERVAL '6 days'`))
-      .groupBy(visitLogs.path)
-      .orderBy(desc(sql`cnt`))
-      .limit(10);
+    // 全部查询并行
+    const [
+      dailyRows,
+      hourlyRows,
+      articleRows,
+      totalRows,
+      todayRows,
+      topPages,
+    ] = await Promise.all([
+      db
+        .select({ day: sql`DATE(${visitLogs.createdAt})`, cnt: count() })
+        .from(visitLogs)
+        .where(gte(visitLogs.createdAt, sql`CURRENT_DATE - INTERVAL '29 days'`))
+        .groupBy(sql`DATE(${visitLogs.createdAt})`)
+        .orderBy(sql`DATE(${visitLogs.createdAt})`),
+      db
+        .select({
+          dow: sql`EXTRACT(DOW FROM ${visitLogs.createdAt})::int`,
+          hour: sql`EXTRACT(HOUR FROM ${visitLogs.createdAt})::int`,
+          cnt: count(),
+        })
+        .from(visitLogs)
+        .where(gte(visitLogs.createdAt, sql`CURRENT_DATE - INTERVAL '6 days'`))
+        .groupBy(
+          sql`EXTRACT(DOW FROM ${visitLogs.createdAt})`,
+          sql`EXTRACT(HOUR FROM ${visitLogs.createdAt})`
+        )
+        .orderBy(
+          sql`EXTRACT(DOW FROM ${visitLogs.createdAt})`,
+          sql`EXTRACT(HOUR FROM ${visitLogs.createdAt})`
+        ),
+      db.select({ n: count() }).from(articles),
+      db.select({ n: count() }).from(visitLogs),
+      db
+        .select({ n: count() })
+        .from(visitLogs)
+        .where(gte(visitLogs.createdAt, sql`CURRENT_DATE`)),
+      db
+        .select({ path: visitLogs.path, cnt: count() })
+        .from(visitLogs)
+        .where(gte(visitLogs.createdAt, sql`CURRENT_DATE - INTERVAL '6 days'`))
+        .groupBy(visitLogs.path)
+        .orderBy(desc(count()))
+        .limit(10),
+    ]);
 
     return NextResponse.json({
       summary: {
-        totalVisits: totalRow?.n ?? 0,
-        todayVisits: todayRow?.n ?? 0,
-        articleCount: articleRow?.n ?? 0,
+        totalVisits: totalRows[0]?.n ?? 0,
+        todayVisits: todayRows[0]?.n ?? 0,
+        articleCount: articleRows[0]?.n ?? 0,
       },
       daily: dailyRows,
       hourly: hourlyRows,
@@ -77,4 +74,14 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+// DELETE /api/admin/analytics —— 清空访问记录
+export async function DELETE() {
+  const session = await auth();
+  if (!session?.user?.isAdmin) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  await db.delete(visitLogs);
+  return NextResponse.json({ ok: true });
 }
