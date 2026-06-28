@@ -15,9 +15,9 @@ nav .links a:hover{color:var(--nav-fg);background:var(--nav-hover)}
 #bg{position:fixed;inset:0;width:100%;height:100%;display:block}
 .hint{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:60;font-size:0.8rem;
   color:rgba(255,255,255,0.3);pointer-events:none;letter-spacing:0.04em}
-.cz{position:fixed;z-index:50;width:14vmin;height:14vmin;cursor:pointer;transition:opacity .5s}
-.cz:hover{opacity:1!important}.cz.le{top:18vh;left:12vw}.cz.or{top:18vh;right:16vw}
-.cz.ly{bottom:14vh;left:10vw}.cz.cy{bottom:14vh;right:12vw}
+.cz{position:fixed;z-index:50;width:15vmin;height:15vmin;cursor:pointer;transition:opacity .5s}
+.cz:hover{opacity:1!important}.cz.le{top:15vh;left:12vw}.cz.or{top:16vh;right:18vw}
+.cz.ly{bottom:14vh;left:8vw}.cz.cy{bottom:11vh;right:14vw}
 .panel{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:80;background:rgba(2,2,12,.65);
   backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;flex-direction:column;align-items:center;justify-content:center;
   opacity:0;pointer-events:none;transition:opacity .5s;color:#fff;font-size:1.4rem}
@@ -38,4 +38,4 @@ nav .links a:hover{color:var(--nav-fg);background:var(--nav-hover)}
 .pn-home-layout .right .bio{font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:20px}
 .pn-home-layout .right .tags{display:flex;flex-wrap:wrap;gap:8px}
 .pn-home-layout .right .tags span{font-size:.75rem;padding:4px 12px;border-radius:12px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5)}
-@media(max-width:640px){nav{padding:0 14px;height:48px}nav .brand{font-size:0.9rem}nav .links a{font-size:0.78rem;padding:5px 10px}.hint{bottom:18px;font-size:0.7rem}.cz{width:20vmin;height:20vmin}.pn-home-layout{flex-direction:column;gap:24px;text-align:center}.pn-home-layout .left{flex:0 0 auto}}
+@media(max-width:640px){nav{padding:0 14px;height:48px}nav .brand{font-size:0.9rem}nav .links a{font-size:0.78rem;padding:5px 10px}.hint{bottom:18px;font-size:0.7rem}.cz{width:16vmin;height:16vmin}.pn-home-layout{flex-direction:column;gap:24px;text-align:center}.pn-home-layout .left{flex:0 0 auto}}

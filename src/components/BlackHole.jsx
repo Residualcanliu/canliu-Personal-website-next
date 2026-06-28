@@ -170,17 +170,17 @@ export default function BlackHole({ onReady }) {
       "return col;}",
       "float segDist(vec2 p,vec2 a,vec2 b){vec2 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return length(pa-ba*h);}",
       "vec3 renderConstellations(vec2 uv,float time){vec3 col=vec3(0);float s=1.+.1*sin(time*.6);vec3 w=vec3(.35);vec3 lc=vec3(.22);float ls=.0000015;",
-      // Leo
-      "vec2 L[9];L[0]=vec2(.120,.690);L[1]=vec2(.156,.716);L[2]=vec2(.136,.740);L[3]=vec2(.209,.788);L[4]=vec2(.195,.806);L[5]=vec2(.207,.843);L[6]=vec2(.229,.843);L[7]=vec2(.237,.787);L[8]=vec2(.261,.763);",
-      "for(int i=0;i<9;i++){float d=length(uv-L[i]);float br=(i==3)?1.8:1.;col+=w*(exp(-d*d/.000022)*br+exp(-d*d/.0001)*.1)*s;}",
+      // Leo (scale 0.6)
+      "vec2 L[9];L[0]=vec2(.150,.724);L[1]=vec2(.171,.740);L[2]=vec2(.159,.754);L[3]=vec2(.203,.783);L[4]=vec2(.195,.794);L[5]=vec2(.202,.816);L[6]=vec2(.215,.816);L[7]=vec2(.220,.782);L[8]=vec2(.234,.768);",
+      "for(int i=0;i<9;i++){float d=length(uv-L[i]);float br=(i==3)?1.8:1.;col+=w*(exp(-d*d/.000012)*br+exp(-d*d/.00006)*.1)*s;}",
       "col+=lc*exp(-segDist(uv,L[2],L[3])*segDist(uv,L[2],L[3])/ls)*.45;col+=lc*exp(-segDist(uv,L[3],L[4])*segDist(uv,L[3],L[4])/ls)*.45;",
       "col+=lc*exp(-segDist(uv,L[4],L[5])*segDist(uv,L[4],L[5])/ls)*.45;col+=lc*exp(-segDist(uv,L[5],L[6])*segDist(uv,L[5],L[6])/ls)*.45;",
       "col+=lc*exp(-segDist(uv,L[3],L[7])*segDist(uv,L[3],L[7])/ls)*.4;col+=lc*exp(-segDist(uv,L[7],L[8])*segDist(uv,L[7],L[8])/ls)*.4;",
       "col+=lc*exp(-segDist(uv,L[0],L[2])*segDist(uv,L[0],L[2])/ls)*.35;col+=lc*exp(-segDist(uv,L[0],L[1])*segDist(uv,L[0],L[1])/ls)*.3;",
       "col+=lc*exp(-segDist(uv,L[1],L[8])*segDist(uv,L[1],L[8])/ls)*.35;",
-      // Orion
-      "vec2 O[17];O[0]=vec2(.720,.675);O[1]=vec2(.730,.720);O[2]=vec2(.741,.723);O[3]=vec2(.748,.730);O[4]=vec2(.762,.716);O[5]=vec2(.778,.683);O[6]=vec2(.760,.771);O[7]=vec2(.742,.792);O[8]=vec2(.705,.777);O[9]=vec2(.693,.791);O[10]=vec2(.676,.820);O[11]=vec2(.695,.856);O[12]=vec2(.823,.774);O[13]=vec2(.822,.788);O[14]=vec2(.822,.766);O[15]=vec2(.818,.749);O[16]=vec2(.806,.741);",
-      "for(int i=0;i<17;i++){float d=length(uv-O[i]);float br=(i==0||i==5||i==8||i==12||(i>=1&&i<=3))?1.5:1.;col+=w*(exp(-d*d/.000022)*br+exp(-d*d/.0001)*.1)*s;}",
+      // Orion (scale 0.6)
+      "vec2 O[17];O[0]=vec2(.734,.708);O[1]=vec2(.740,.735);O[2]=vec2(.747,.737);O[3]=vec2(.751,.741);O[4]=vec2(.759,.732);O[5]=vec2(.769,.713);O[6]=vec2(.758,.765);O[7]=vec2(.747,.778);O[8]=vec2(.725,.769);O[9]=vec2(.718,.777);O[10]=vec2(.708,.795);O[11]=vec2(.719,.816);O[12]=vec2(.796,.767);O[13]=vec2(.795,.776);O[14]=vec2(.795,.762);O[15]=vec2(.793,.752);O[16]=vec2(.786,.747);",
+      "for(int i=0;i<17;i++){float d=length(uv-O[i]);float br=(i==0||i==5||i==8||i==12||(i>=1&&i<=3))?1.5:1.;col+=w*(exp(-d*d/.000012)*br+exp(-d*d/.00006)*.1)*s;}",
       "col+=lc*exp(-segDist(uv,O[8],O[6])*segDist(uv,O[8],O[6])/ls)*.4;col+=lc*exp(-segDist(uv,O[6],O[7])*segDist(uv,O[6],O[7])/ls)*.4;",
       "col+=lc*exp(-segDist(uv,O[8],O[0])*segDist(uv,O[8],O[0])/ls)*.35;",
       "col+=lc*exp(-segDist(uv,O[6],O[4])*segDist(uv,O[6],O[4])/ls)*.3;col+=lc*exp(-segDist(uv,O[4],O[5])*segDist(uv,O[4],O[5])/ls)*.3;",
@@ -192,16 +192,16 @@ export default function BlackHole({ onReady }) {
       "col+=lc*exp(-segDist(uv,O[6],O[12])*segDist(uv,O[6],O[12])/ls)*.3;col+=lc*exp(-segDist(uv,O[12],O[13])*segDist(uv,O[12],O[13])/ls)*.3;",
       "col+=lc*exp(-segDist(uv,O[12],O[14])*segDist(uv,O[12],O[14])/ls)*.3;col+=lc*exp(-segDist(uv,O[14],O[15])*segDist(uv,O[14],O[15])/ls)*.3;",
       "col+=lc*exp(-segDist(uv,O[15],O[16])*segDist(uv,O[15],O[16])/ls)*.3;",
-      // Lyra
-      "vec2 Y[5];Y[0]=vec2(.140,.120);Y[1]=vec2(.182,.150);Y[2]=vec2(.107,.208);Y[3]=vec2(.149,.240);Y[4]=vec2(.171,.278);",
-      "for(int i=0;i<5;i++){float d=length(uv-Y[i]);float br=(i==0||i==4)?1.8:1.;col+=w*(exp(-d*d/.000022)*br+exp(-d*d/.0001)*.1)*s;}",
+      // Lyra (scale 0.6)
+      "vec2 Y[5];Y[0]=vec2(.144,.152);Y[1]=vec2(.169,.170);Y[2]=vec2(.124,.204);Y[3]=vec2(.149,.224);Y[4]=vec2(.163,.246);",
+      "for(int i=0;i<5;i++){float d=length(uv-Y[i]);float br=(i==0||i==4)?1.8:1.;col+=w*(exp(-d*d/.000012)*br+exp(-d*d/.00006)*.1)*s;}",
       "col+=lc*exp(-segDist(uv,Y[0],Y[1])*segDist(uv,Y[0],Y[1])/ls)*.4;col+=lc*exp(-segDist(uv,Y[1],Y[3])*segDist(uv,Y[1],Y[3])/ls)*.4;",
       "col+=lc*exp(-segDist(uv,Y[3],Y[2])*segDist(uv,Y[3],Y[2])/ls)*.4;col+=lc*exp(-segDist(uv,Y[2],Y[0])*segDist(uv,Y[2],Y[0])/ls)*.4;",
       "col+=lc*exp(-segDist(uv,Y[4],Y[3])*segDist(uv,Y[4],Y[3])/ls)*.45;col+=lc*exp(-segDist(uv,Y[4],Y[2])*segDist(uv,Y[4],Y[2])/ls)*.4;",
       "col+=lc*exp(-segDist(uv,Y[4],Y[0])*segDist(uv,Y[4],Y[0])/ls)*.3;",
-      // Cygnus
-      "vec2 C[9];C[0]=vec2(.880,.120);C[1]=vec2(.825,.161);C[2]=vec2(.783,.184);C[3]=vec2(.757,.207);C[4]=vec2(.824,.217);C[5]=vec2(.761,.144);C[6]=vec2(.720,.121);C[7]=vec2(.833,.249);C[8]=vec2(.847,.257);",
-      "for(int i=0;i<9;i++){float d=length(uv-C[i]);float br=(i==0||i==2||i==8)?1.6:1.;col+=w*(exp(-d*d/.000022)*br+exp(-d*d/.0001)*.1)*s;}",
+      // Cygnus (scale 0.6)
+      "vec2 C[9];C[0]=vec2(.849,.146);C[1]=vec2(.816,.170);C[2]=vec2(.791,.184);C[3]=vec2(.775,.198);C[4]=vec2(.816,.204);C[5]=vec2(.778,.160);C[6]=vec2(.753,.146);C[7]=vec2(.821,.223);C[8]=vec2(.829,.228);",
+      "for(int i=0;i<9;i++){float d=length(uv-C[i]);float br=(i==0||i==2||i==8)?1.6:1.;col+=w*(exp(-d*d/.000012)*br+exp(-d*d/.00006)*.1)*s;}",
       "col+=lc*exp(-segDist(uv,C[8],C[7])*segDist(uv,C[8],C[7])/ls)*.45;col+=lc*exp(-segDist(uv,C[7],C[2])*segDist(uv,C[7],C[2])/ls)*.4;",
       "col+=lc*exp(-segDist(uv,C[2],C[1])*segDist(uv,C[2],C[1])/ls)*.4;col+=lc*exp(-segDist(uv,C[1],C[0])*segDist(uv,C[1],C[0])/ls)*.4;",
       "col+=lc*exp(-segDist(uv,C[2],C[5])*segDist(uv,C[2],C[5])/ls)*.4;col+=lc*exp(-segDist(uv,C[5],C[6])*segDist(uv,C[5],C[6])/ls)*.4;",
