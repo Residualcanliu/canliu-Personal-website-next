@@ -3,11 +3,12 @@ import { db } from "@/db/index";
 import { articles } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { checkAdmin } from "@/lib/auth-check";
 
 // GET /api/admin/articles/[id] — 获取单篇文章
 export async function GET(_req, { params }) {
   const session = await auth();
-  if (!session?.user?.isAdmin) {
+  if (!(await checkAdmin(session?.user?.id))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const { id } = await params;
@@ -19,7 +20,7 @@ export async function GET(_req, { params }) {
 // PUT /api/admin/articles/[id] — 更新文章
 export async function PUT(req, { params }) {
   const session = await auth();
-  if (!session?.user?.isAdmin) {
+  if (!(await checkAdmin(session?.user?.id))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const { id } = await params;
@@ -55,7 +56,7 @@ export async function PUT(req, { params }) {
 // DELETE /api/admin/articles/[id] — 删除文章
 export async function DELETE(_req, { params }) {
   const session = await auth();
-  if (!session?.user?.isAdmin) {
+  if (!(await checkAdmin(session?.user?.id))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const { id } = await params;

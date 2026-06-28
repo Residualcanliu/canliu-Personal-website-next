@@ -3,10 +3,11 @@ import { db } from "@/db/index";
 import { visitLogs, articles } from "@/db/schema";
 import { sql, count, gte, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { checkAdmin } from "@/lib/auth-check";
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.isAdmin) {
+  if (!(await checkAdmin(session?.user?.id))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -79,7 +80,7 @@ export async function GET() {
 // DELETE /api/admin/analytics —— 清空访问记录
 export async function DELETE() {
   const session = await auth();
-  if (!session?.user?.isAdmin) {
+  if (!(await checkAdmin(session?.user?.id))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   await db.delete(visitLogs);

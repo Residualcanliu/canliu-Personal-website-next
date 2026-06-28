@@ -3,11 +3,12 @@ import { db } from "@/db/index";
 import { articles } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { checkAdmin } from "@/lib/auth-check";
 
 // GET /api/admin/articles — 列出全部文章（含草稿）
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.isAdmin) {
+  if (!(await checkAdmin(session?.user?.id))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const rows = await db
@@ -20,7 +21,7 @@ export async function GET() {
 // POST /api/admin/articles — 创建新文章
 export async function POST(req) {
   const session = await auth();
-  if (!session?.user?.isAdmin) {
+  if (!(await checkAdmin(session?.user?.id))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const body = await req.json();
