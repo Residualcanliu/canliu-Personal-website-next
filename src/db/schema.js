@@ -60,3 +60,20 @@ export const visitLogs = pgTable("visitLog", {
   referer: text("referer"),
   createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
 });
+
+/* ---- 留言板 ---- */
+export const messages = pgTable("message", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  content: text("content").notNull(),
+  msgStatus: text("msgStatus").default(""),   // 留言者自己的状态
+  approved: integer("approved").default(0),   // 0=待审 1=通过 -1=拒绝
+  createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
+});
+
+/* ---- 站点设置（键值对） ---- */
+export const settings = pgTable("setting", {
+  key: text("key").primaryKey(),
+  value: text("value").default(""),
+  updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow(),
+});

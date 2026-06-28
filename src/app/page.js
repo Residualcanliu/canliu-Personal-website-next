@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import BlackHole from "@/components/BlackHole";
+import Guestbook from "./Guestbook";
 
 const PAGES = [
   { id: "home", label: "首页" },
@@ -23,6 +24,8 @@ export default function Home() {
   const [showCfg, setShowCfg] = useState(false);
   const [speed, setSpeed] = useState(50);
   const [attract, setAttract] = useState(0.45);
+  const [userStatus, setUserStatus] = useState("");
+  const [statusColor, setStatusColor] = useState("#4f4");
   const bhRef = useRef(null);
 
   // 把设置直接写到 ref 对象上（动画循环读 selfRef.current.speed / .attract）
@@ -32,6 +35,19 @@ export default function Home() {
       bhRef.current.attract = attract;
     }
   }, [speed, attract]);
+
+  // 加载个人状态
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/settings?key=status").then((r) => r.json()),
+      fetch("/api/settings?key=statusColor").then((r) => r.json()),
+    ])
+      .then(([s, c]) => {
+        setUserStatus(s.value || "");
+        setStatusColor(c.value || "#4f4");
+      })
+      .catch(() => {});
+  }, [current]);
 
   const show = useCallback((id) => {
     if (current === id) return setCurrent(null);
@@ -130,19 +146,36 @@ export default function Home() {
 
       <div className={"panel" + (current === "profile" ? " on" : "")} id="pn-profile">
         <button className="close" onClick={hide}>&times;</button>
-        <div className="pn-home-layout">
+        <a className="home-btn" onClick={hide} style={{ position: "absolute", top: 28, left: 28, margin: 0, fontSize: ".82rem", zIndex: 6 }}>← 返回主页</a>
+        <div className="pn-home-layout" style={{ marginTop: 40 }}>
           <div className="left">
-            <div className="avatar">🌌</div>
-            <div style={{ fontSize: ".95rem", color: "rgba(255,255,255,.7)" }}>gch</div>
-            <div className="status">🟢 探索宇宙中</div>
+            <img src="/cat.jpg" alt="avatar" className="avatar-img" />
+            <div style={{ fontSize: "1rem", color: "rgba(255,255,255,.85)", fontWeight: 500 }}>gch / 残留v枫楪</div>
+            <div className="status" id="user-status">
+              <span className="status-dot" style={{ background: userStatus ? statusColor : "#f44" }} />
+              {userStatus || "加载中..."}
+            </div>
+            <div className="profile-tags">
+              <span>AI agent</span><span>个人博客</span><span>喵～</span><span>大数据专业</span><span>CS</span><span>MC</span>
+            </div>
           </div>
           <div className="right">
-            <h2>♌ 狮子座 · 个人</h2>
-            <div className="bio">欢迎来到我的个人空间。这里记录了我的项目、文章和想法。</div>
-            <div className="tags"><span>Three.js</span><span>GLSL</span><span>WebGL</span><span>个人博客</span></div>
+            <h2>个人简介</h2>
+            <div className="bio">欢迎来到我的个人空间，这里记录了我的项目、文章和想法。本网站采用 Next.js + Three.js + GLSL 构建，黑洞引力透镜与星座星图均为实时渲染。</div>
+            <div className="profile-links">
+              如果你对网站中的项目、文章、想法、甚至对此网站的设计感兴趣，欢迎一起交流分享：
+              <br /><br />
+              Bilibili：<a href="https://space.bilibili.com/280596044" target="_blank" rel="noopener">space.bilibili.com/280596044</a>
+              <br />
+              Github：<a href="https://github.com/Residualcanliu" target="_blank" rel="noopener">github.com/Residualcanliu</a>
+              <br />
+              Steam：<a href="https://steamcommunity.com/profiles/76561198867504448/" target="_blank" rel="noopener">steamcommunity.com/profiles/76561198867504448/</a>
+              <br />
+              Email：<a href="mailto:gaochaohongmain@foxmail.com">gaochaohongmain@foxmail.com</a>
+            </div>
           </div>
         </div>
-        <a className="home-btn" onClick={hide}>← 返回主页</a>
+        <Guestbook />
       </div>
 
       <div className={"panel" + (current === "or" ? " on" : "")} id="pn-or">

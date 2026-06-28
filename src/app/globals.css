@@ -32,10 +32,18 @@ nav .links a:hover{color:var(--nav-fg);background:var(--nav-hover)}
 .pn-home-layout .left{flex:0 0 200px;text-align:center}
 .pn-home-layout .left .avatar{width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06);
   border:2px solid rgba(255,255,255,.15);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:3rem}
-.pn-home-layout .left .status{font-size:.8rem;color:rgba(255,255,255,.35)}
-.pn-home-layout .right{flex:1;min-width:0}
+.pn-home-layout .left .avatar-img{width:120px;height:120px;border-radius:50%;object-fit:cover;
+  border:2px solid rgba(255,255,255,.2);margin:0 auto 16px;display:block}
+.pn-home-layout .left .status{font-size:.8rem;color:rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;gap:6px}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pn-home-layout .right{flex:1;min-width:0;text-align:left}
 .pn-home-layout .right h2{font-size:1.6rem;margin-bottom:8px;font-weight:500}
 .pn-home-layout .right .bio{font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:20px}
 .pn-home-layout .right .tags{display:flex;flex-wrap:wrap;gap:8px}
 .pn-home-layout .right .tags span{font-size:.75rem;padding:4px 12px;border-radius:12px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5)}
+.profile-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:6px}
+.profile-tags span{font-size:.65rem;padding:2px 10px;border-radius:10px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.4)}
+.profile-links{margin-top:18px;font-size:.9rem;color:rgba(255,255,255,.45);line-height:1.9}
+.profile-links a{color:rgba(140,180,255,.6);text-decoration:none;transition:color .2s}
+.profile-links a:hover{color:rgba(140,180,255,.9)}
 @media(max-width:640px){nav{padding:0 14px;height:48px}nav .brand{font-size:0.9rem}nav .links a{font-size:0.78rem;padding:5px 10px}.hint{bottom:18px;font-size:0.7rem}.cz{width:16vmin;height:16vmin}.pn-home-layout{flex-direction:column;gap:24px;text-align:center}.pn-home-layout .left{flex:0 0 auto}}
