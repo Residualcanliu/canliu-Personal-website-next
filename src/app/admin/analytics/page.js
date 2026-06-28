@@ -24,10 +24,10 @@ export default function AnalyticsPage() {
     );
   }
 
-  if (!data) {
+  if (!data || !data.summary) {
     return (
       <div style={{ padding: "36px 32px", color: "rgba(255,120,120,0.8)" }}>
-        加载失败，请重试。
+        {data?.error || "加载失败"} {data?.detail ? `— ${data.detail}` : ""}
       </div>
     );
   }
