@@ -12,10 +12,10 @@ const PAGES = [
 ];
 
 const CORNERS = [
-  { cls: "ly", page: "profile", title: "狮子座 · 个人" },
-  { cls: "cy", page: "cy", title: "天鹅座 · 联系" },
-  { cls: "le", page: "or", title: "猎户座 · 项目" },
-  { cls: "or", page: "ly", title: "天琴座 · 文章" },
+  { cls: "le", page: "profile", title: "狮子座 · 个人" },
+  { cls: "or", page: "or",   title: "猎户座 · 项目" },
+  { cls: "ly", page: "ly",   title: "天琴座 · 文章" },
+  { cls: "cy", page: "cy",   title: "天鹅座 · 联系" },
 ];
 
 export default function Home() {
