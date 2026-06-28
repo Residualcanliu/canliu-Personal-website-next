@@ -96,12 +96,39 @@ export default function AdminLayout({ children }) {
           })}
         </nav>
 
+        {/* 返回首页 */}
+        <div style={{ padding: "0 10px", marginTop: "auto" }}>
+          <a
+            href="/"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 14px",
+              fontSize: "0.85rem",
+              color: "rgba(255,255,255,0.35)",
+              textDecoration: "none",
+              borderRadius: 7,
+              transition: "color 0.15s, background 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.color = "rgba(255,255,255,0.7)";
+              e.target.style.background = "rgba(255,255,255,0.04)";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.color = "rgba(255,255,255,0.35)";
+              e.target.style.background = "transparent";
+            }}
+          >
+            &larr; 返回首页
+          </a>
+        </div>
+
         {/* 底部用户区 */}
         <div
           style={{
             padding: "16px 20px",
             borderTop: "1px solid rgba(255,255,255,0.05)",
-            marginTop: "auto",
           }}
         >
           <button

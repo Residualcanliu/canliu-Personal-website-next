@@ -1,4 +1,5 @@
 import "./globals.css";
+import TrackView from "@/components/TrackView";
 
 export const metadata = {
   title: "个人空间 — canliu",
@@ -8,7 +9,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="zh-CN">
-      <body>{children}</body>
+      <body>
+        {children}
+        <TrackView />
+      </body>
     </html>
   );
 }
