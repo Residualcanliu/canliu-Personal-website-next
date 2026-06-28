@@ -2,12 +2,16 @@
 
 import { useState, useEffect, useRef } from "react";
 
+const STATUS_EMOJIS = ["", "🟢", "🔵", "🟡", "🟠", "🔴", "🟣", "⚫", "✨", "🔥", "💤", "🎮", "📚", "🎵", "☕", "🌈", "💡", "🚀", "🌙", "⭐"];
+
 export default function Guestbook({ onBack }) {
   const [messages, setMessages] = useState([]);
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
-  const [msgStatus, setMsgStatus] = useState("");
+  const [msgEmoji, setMsgEmoji] = useState("");
+  const [msgText, setMsgText] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const fadeTimer = useRef(null);
@@ -36,12 +40,13 @@ export default function Guestbook({ onBack }) {
       await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), content: content.trim(), msgStatus: msgStatus.trim() }),
+        body: JSON.stringify({ name: name.trim(), content: content.trim(), msgStatus: (msgEmoji + " " + msgText.trim()).trim() }),
       });
       setSubmitted(true);
       setName("");
       setContent("");
-      setMsgStatus("");
+      setMsgEmoji("");
+      setMsgText("");
     } catch { /* ignore */ }
     finally { setSending(false); }
   }
@@ -87,12 +92,8 @@ export default function Guestbook({ onBack }) {
           >
             <span style={{ fontWeight: 500, color: "rgba(255,255,255,0.7)", fontSize: "0.8rem" }}>
               {m.name}
+              {m.msgStatus && <span style={{ marginLeft: 6, fontWeight: 400 }}>{m.msgStatus}</span>}
             </span>
-            {m.msgStatus && (
-              <span style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.3)", marginLeft: 6 }}>
-                · {m.msgStatus}
-              </span>
-            )}
             <span style={{ display: "block", marginTop: 3 }}>{m.content}</span>
           </div>
         );
@@ -173,7 +174,7 @@ export default function Guestbook({ onBack }) {
               boxSizing: "border-box",
             }}
           >
-            <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
               <input
                 style={{ ...inputBase, flex: "1 1 0" }}
                 placeholder="昵称"
@@ -182,14 +183,60 @@ export default function Guestbook({ onBack }) {
                 maxLength={30}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowEmoji(!showEmoji)}
+                style={{
+                  padding: "6px 8px",
+                  fontSize: "1.1rem",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  minWidth: 34,
+                  flexShrink: 0,
+                }}
+              >
+                {msgEmoji || "😊"}
+              </button>
               <input
                 style={{ ...inputBase, flex: "1 1 0" }}
-                placeholder="状态（选填）"
-                value={msgStatus}
-                onChange={(e) => setMsgStatus(e.target.value)}
-                maxLength={60}
+                placeholder="状态文字"
+                value={msgText}
+                onChange={(e) => setMsgText(e.target.value)}
+                maxLength={30}
               />
             </div>
+            {showEmoji && (
+              <div style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 4,
+                padding: "4px 0",
+              }}>
+                {STATUS_EMOJIS.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => { setMsgEmoji(e); setShowEmoji(false); }}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      fontSize: "1rem",
+                      background: msgEmoji === e ? "rgba(100,160,255,0.2)" : "rgba(255,255,255,0.03)",
+                      border: msgEmoji === e ? "1px solid rgba(100,160,255,0.4)" : "1px solid rgba(255,255,255,0.06)",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {e || "—"}
+                  </button>
+                ))}
+              </div>
+            )}
             <textarea
               style={{ ...inputBase, minHeight: 60, resize: "vertical" }}
               placeholder="说点什么..."
