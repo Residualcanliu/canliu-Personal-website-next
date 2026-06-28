@@ -16,6 +16,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     sessionsTable: schema.sessions,
     verificationTokensTable: schema.verificationTokens,
   }),
+  session: {
+    maxAge: 30 * 24 * 60 * 60, // 30 天
+    updateAge: 24 * 60 * 60,   // 每 24h 续期一次
+  },
   providers: [
     GitHub({
       clientId: process.env.AUTH_GITHUB_ID,

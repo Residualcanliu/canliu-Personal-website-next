@@ -7,7 +7,7 @@ export default async function AdminPage() {
   if (!session?.user) redirect("/admin/login");
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a14" }}>
+    <div style={{ minHeight: "100vh", background: "#13132a" }}>
       {/* 顶栏 */}
       <header
         style={{

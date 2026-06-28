@@ -16,7 +16,7 @@ function LoginContent() {
         alignItems: "center",
         justifyContent: "center",
         minHeight: "100vh",
-        background: "#020208",
+        background: "#13132a",
         color: "#fff",
         fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif',
         gap: "24px",
@@ -79,7 +79,7 @@ export default function LoginPage() {
             alignItems: "center",
             justifyContent: "center",
             minHeight: "100vh",
-            background: "#020208",
+            background: "#13132a",
             color: "rgba(255,255,255,0.4)",
           }}
         >
