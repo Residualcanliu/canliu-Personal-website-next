@@ -47,8 +47,20 @@ export const articles = pgTable("article", {
   excerpt: text("excerpt").default(""),
   coverImage: text("coverImage"),
   published: integer("published").default(0),
+  allowComments: integer("allowComments").default(1),  // 1=允许评论 0=关闭
   createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow(),
+});
+
+/* ---- 文章评论 ---- */
+export const comments = pgTable("comment", {
+  id: text("id").primaryKey(),
+  articleId: text("articleId").notNull(),
+  name: text("name").notNull(),
+  content: text("content").notNull(),
+  ip: text("ip"),
+  approved: integer("approved").default(0),   // 0=待审 1=通过 -1=拒绝
+  createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
 });
 
 /* ---- 访问日志 ---- */

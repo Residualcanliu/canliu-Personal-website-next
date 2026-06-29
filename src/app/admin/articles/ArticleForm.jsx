@@ -11,6 +11,7 @@ export default function ArticleForm({ initial = null }) {
   const [excerpt, setExcerpt] = useState(initial?.excerpt || "");
   const [content, setContent] = useState(initial?.content || "");
   const [published, setPublished] = useState(!!initial?.published);
+  const [allowComments, setAllowComments] = useState(initial ? !!initial.allowComments : true);
   const [saving, setSaving] = useState(false);
 
   function handleTitleChange(e) {
@@ -31,7 +32,7 @@ export default function ArticleForm({ initial = null }) {
     e.preventDefault();
     if (!title.trim()) return alert("标题不能为空");
     setSaving(true);
-    const body = { title, slug: slug || undefined, excerpt, content, published };
+    const body = { title, slug: slug || undefined, excerpt, content, published, allowComments };
     const url = isEdit ? `/api/admin/articles/${initial.id}` : "/api/admin/articles";
     const method = isEdit ? "PUT" : "POST";
     try {
@@ -139,6 +140,19 @@ export default function ArticleForm({ initial = null }) {
         />
         <label htmlFor="pub" style={{ fontSize: "0.88rem", cursor: "pointer" }}>
           发布（勾选后公开可见）
+        </label>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <input
+          type="checkbox"
+          id="ac"
+          checked={allowComments}
+          onChange={(e) => setAllowComments(e.target.checked)}
+          style={{ width: 18, height: 18, cursor: "pointer" }}
+        />
+        <label htmlFor="ac" style={{ fontSize: "0.88rem", cursor: "pointer" }}>
+          允许评论（勾选后读者可在文章下评论）
         </label>
       </div>
 

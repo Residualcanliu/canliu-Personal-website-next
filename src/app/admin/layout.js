@@ -10,6 +10,7 @@ const NAV = [
   { href: "/admin/articles", label: "文章管理" },
   { href: "/admin/projects", label: "项目管理" },
   { href: "/admin/messages", label: "留言管理" },
+  { href: "/admin/comments", label: "评论管理" },
   { href: "/admin/pegasus", label: "天马座存档" },
   { href: "/admin/settings", label: "设置" },
 ];
