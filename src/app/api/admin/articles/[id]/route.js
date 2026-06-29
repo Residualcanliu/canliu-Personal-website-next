@@ -29,25 +29,32 @@ export async function PUT(req, { params }) {
   const existing = await db.select().from(articles).where(eq(articles.id, id)).limit(1);
   if (!existing.length) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  await db
-    .update(articles)
-    .set({
-      title: body.title ?? existing[0].title,
-      content: body.content ?? existing[0].content,
-      excerpt: body.excerpt ?? existing[0].excerpt,
-      coverImage: body.coverImage !== undefined ? body.coverImage : existing[0].coverImage,
-      published: body.published !== undefined ? (body.published ? 1 : 0) : existing[0].published,
-      slug:
-        body.slug ||
-        (body.title
-          ? body.title
-              .replace(/[^a-zA-Z0-9一-龥]+/g, "-")
-              .replace(/^-|-$/g, "")
-              .toLowerCase()
-          : existing[0].slug),
-      updatedAt: new Date(),
-    })
-    .where(eq(articles.id, id));
+  try {
+    await db
+      .update(articles)
+      .set({
+        title: body.title ?? existing[0].title,
+        content: body.content ?? existing[0].content,
+        excerpt: body.excerpt ?? existing[0].excerpt,
+        coverImage: body.coverImage !== undefined ? body.coverImage : existing[0].coverImage,
+        published: body.published !== undefined ? (body.published ? 1 : 0) : existing[0].published,
+        slug:
+          body.slug ||
+          (body.title
+            ? body.title
+                .replace(/[^a-zA-Z0-9一-龥]+/g, "-")
+                .replace(/^-|-$/g, "")
+                .toLowerCase()
+            : existing[0].slug),
+        updatedAt: new Date(),
+      })
+      .where(eq(articles.id, id));
+  } catch (e) {
+    if (e.code === "23505" || String(e.message || "").includes("unique") || String(e.message || "").includes("duplicate")) {
+      return NextResponse.json({ error: "该 Slug 已被使用，请换一个" }, { status: 409 });
+    }
+    throw e;
+  }
 
   const rows = await db.select().from(articles).where(eq(articles.id, id)).limit(1);
   return NextResponse.json(rows[0]);
