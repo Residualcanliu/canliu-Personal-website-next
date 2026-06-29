@@ -46,4 +46,20 @@ nav .links a:hover{color:var(--nav-fg);background:var(--nav-hover)}
 .profile-links{margin-top:18px;font-size:.9rem;color:rgba(255,255,255,.45);line-height:1.9}
 .profile-links a{color:rgba(140,180,255,.6);text-decoration:none;transition:color .2s}
 .profile-links a:hover{color:rgba(140,180,255,.9)}
+/* ---- 文章卡片 ---- */
+.article-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;
+  padding:20px 24px;cursor:pointer;transition:background .25s,border-color .25s,box-shadow .25s;margin-bottom:12px}
+.article-card:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12);box-shadow:0 0 24px rgba(140,180,255,.06)}
+.article-card-header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:6px}
+.article-card-header h3{font-size:1.1rem;font-weight:500;color:rgba(255,255,255,.82);margin:0;flex:1}
+.article-card-date{font-size:.75rem;color:rgba(255,255,255,.3);white-space:nowrap}
+.article-card-excerpt{font-size:.82rem;color:rgba(255,255,255,.4);line-height:1.65;margin:0 0 8px;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.article-card.expanded .article-card-excerpt{-webkit-line-clamp:unset;overflow:visible}
+.article-card-toggle{font-size:.75rem;color:rgba(140,180,255,.45);transition:color .2s}
+.article-card:hover .article-card-toggle{color:rgba(140,180,255,.7)}
+.article-card-body{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.05);
+  font-size:.85rem;color:rgba(255,255,255,.55);line-height:1.8;animation:cardFadeIn .3s ease}
+.article-card-body p{margin:0;white-space:pre-wrap}
+@keyframes cardFadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:640px){nav{padding:0 14px;height:48px}nav .brand{font-size:0.9rem}nav .links a{font-size:0.78rem;padding:5px 10px}.hint{bottom:18px;font-size:0.7rem}.cz{width:16vmin;height:16vmin}.pn-home-layout{flex-direction:column;gap:24px;text-align:center}.pn-home-layout .left{flex:0 0 auto}}

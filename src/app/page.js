@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import BlackHole from "@/components/BlackHole";
 import Guestbook from "./Guestbook";
+import ArticlesPanel from "@/components/ArticlesPanel";
 
 const PAGES = [
   { id: "home", label: "首页" },
@@ -163,9 +164,9 @@ export default function Home() {
           </div>
           <div className="right">
             <h2>个人简介</h2>
-            <div className="bio">欢迎来到我的个人空间，这里记录了我的项目、文章和想法。本网站采用 Next.js + Three.js + GLSL 构建，黑洞引力透镜与星座星图均为实时渲染。</div>
+            <div className="bio">一个喜欢猫、也有想法的人，欢迎来到我的个人空间，这里记录了我的项目、文章和想法。本网站采用 Next.js + Three.js + GLSL 构建，黑洞引力透镜与星座星图均为实时渲染。</div>
             <div className="profile-links">
-              如果你对网站中的项目、文章、想法、甚至对此网站的设计感兴趣，欢迎一起交流分享：
+              如果你对网站中的项目、文章、想法、甚至对此网站的设计感兴趣，欢迎一起交流分享，也欢迎大家在网站留言，这片星空将会留下属于你的足迹：
               <br /><br />
               Bilibili：<a href="https://space.bilibili.com/280596044" target="_blank" rel="noopener">space.bilibili.com/280596044</a>
               <br />
@@ -188,8 +189,7 @@ export default function Home() {
 
       <div className={"panel" + (current === "ly" ? " on" : "")} id="pn-ly">
         <button className="close" onClick={hide}>&times;</button>
-        <span>♫ 天琴座 · 文章</span>
-        <a className="home-btn" onClick={hide}>← 返回主页</a>
+        <ArticlesPanel userStatus={userStatus} statusColor={statusColor} onBack={hide} />
       </div>
 
       <div className={"panel" + (current === "cy" ? " on" : "")} id="pn-cy">
