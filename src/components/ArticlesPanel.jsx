@@ -111,6 +111,11 @@ export default function ArticlesPanel({ userStatus, statusColor, onBack }) {
         <div className="profile-tags" style={{ marginTop: 10 }}>
           <span>AI agent</span><span>个人博客</span><span>喵～</span><span>大数据专业</span><span>CS</span><span>MC</span>
         </div>
+        {onBack && (
+          <a className="home-btn" style={{ marginTop: 30, fontSize: "0.85rem", color: "rgba(255,255,255,.5)" }} onClick={onBack}>
+            ← 返回主页
+          </a>
+        )}
       </div>
 
       {/* 右侧 */}
@@ -215,9 +220,6 @@ export default function ArticlesPanel({ userStatus, statusColor, onBack }) {
           })
         )}
 
-        <div style={{ display: "flex", justifyContent: "center", marginTop: 24, paddingBottom: 20 }}>
-          {onBack && <a className="home-btn" style={{ marginTop: 0 }} onClick={onBack}>返回主页</a>}
-        </div>
       </div>
     </div>
   );
