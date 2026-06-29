@@ -14,8 +14,14 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
     let h = document.getElementById("hint");
     if (!h) { h = document.createElement("div"); h.id = "hint"; h.className = "hint"; document.body.appendChild(h); }
 
+    // 性能分档：根据屏幕宽度自动选档（0=low 1=medium 2=high）
+    const q = innerWidth < 640 ? 0 : innerWidth < 1024 ? 1 : 2;
+    const maxPR = q === 0 ? 1 : q === 1 ? 1.5 : 2;
+    const TRES = q === 0 ? 512 : q === 1 ? 1024 : 2048;
+    const TRESH = q === 0 ? 128 : q === 1 ? 256 : 512;
+
     const R = new THREE.WebGLRenderer({ canvas: c, antialias: true, alpha: false });
-    R.setPixelRatio(Math.min(devicePixelRatio, 2));
+    R.setPixelRatio(Math.min(devicePixelRatio, maxPR));
     R.setSize(innerWidth, innerHeight);
     const gl = R.getContext();
     const _cs = gl.compileShader.bind(gl);
@@ -34,8 +40,8 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
 
     // Canvas texture — shared draw function so clock updates
     const tc = document.createElement("canvas");
-    tc.width = 2048;
-    tc.height = 512;
+    tc.width = TRES;
+    tc.height = TRESH;
     const tx = tc.getContext("2d");
     tx.textAlign = "center";
     tx.textBaseline = "middle";
@@ -46,25 +52,27 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
 
     function drawTexture() {
       tx.clearRect(0, 0, tc.width, tc.height);
-      // Clock — 年月日时分秒, small, 70% transparent, below nav bar
+      const cx = tc.width / 2;
+      const scale = TRES / 2048; // 缩放系数，用于字体/位置
+      // Clock
       const n = new Date();
       const pad = (v) => String(v).padStart(2, "0");
       const ts = n.getFullYear() + "-" + pad(n.getMonth() + 1) + "-" + pad(n.getDate()) + " " +
         pad(n.getHours()) + ":" + pad(n.getMinutes()) + ":" + pad(n.getSeconds());
-      tx.shadowBlur = 6;
-      tx.font = "400 20px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      tx.shadowBlur = 6 * scale;
+      tx.font = "400 " + Math.round(20 * scale) + "px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
       tx.fillStyle = "rgba(255,255,255,0.5)";
-      tx.fillText(ts, 1024, 90);
+      tx.fillText(ts, cx, 90 * scale);
       // Hint
-      tx.font = "400 20px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      tx.shadowBlur = 4;
+      tx.font = "400 " + Math.round(20 * scale) + "px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      tx.shadowBlur = 4 * scale;
       tx.fillStyle = "rgba(255,255,255,0.22)";
-      tx.fillText("点击星图或右上角查看各个栏目", 1024, 195);
+      tx.fillText("点击星图或右上角查看各个栏目", cx, 195 * scale);
       // Main title
-      tx.font = "600 80px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      tx.shadowBlur = 30;
+      tx.font = "600 " + Math.round(80 * scale) + "px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      tx.shadowBlur = 30 * scale;
       tx.fillStyle = "rgba(255,255,255,0.95)";
-      tx.fillText("欢迎来到我的频道", 1024, 256);
+      tx.fillText("欢迎来到我的频道", cx, 256 * scale);
       te.needsUpdate = true;
     }
     drawTexture();
@@ -94,13 +102,14 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       uTex: { value: te },
       uMouse: { value: new THREE.Vector2(0.5, 0.5) },
       uZoom: { value: 0 },
+      uQuality: { value: q },
     };
 
     const VS = "varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}";
 
     // ===== FRAGMENT SHADER (exact copy from v1.2) =====
     const FS = [
-      "varying vec2 vUv;uniform vec2 uRes,uBH,uMouse;uniform float uTime,uRadius,uZoom;uniform sampler2D uTex;",
+      "varying vec2 vUv;uniform vec2 uRes,uBH,uMouse;uniform float uTime,uRadius,uZoom,uQuality;uniform sampler2D uTex;",
       "float h23(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}",
       "float h31(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}",
       "float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h23(i),h23(i+vec2(1,0)),f.x),mix(h23(i+vec2(0,1)),h23(i+vec2(1,1)),f.x),f.y);}",
@@ -117,7 +126,7 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       "col+=vec3(.006,.003,.014)*emi;",
       "return col;}",
       "vec3 renderStars(vec2 uv,float time){vec3 col=vec3(0);",
-      "for(int L=0;L<7;L++){float sc=pow(2.1,float(L));vec2 suv=uv*sc*65.;vec2 ce=floor(suv),lo=fract(suv)-.5;",
+      "for(int L=0;L<7;L++){if(uQuality<1.&&L>=2)continue;if(uQuality<2.&&L>=4)continue;float sc=pow(2.1,float(L));vec2 suv=uv*sc*65.;vec2 ce=floor(suv),lo=fract(suv)-.5;",
       "float hh=h23(ce+float(L)*999.),h2=h23(ce+float(L)*777.+413.),h3=h23(ce+float(L)*541.+237.);",
       "float thr=.014+float(L)*.007;",
       "if(hh<thr){float tb=(thr-hh)/thr;",
@@ -148,6 +157,7 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       "if(di>r&&di<r*2.){float nd=(di-r)/r;float at=exp(-nd*nd/.1)*.025;col+=vec3(.04,.08,.2)*at;}",
       "return col;}",
       "vec3 renderDisk(vec2 px,vec2 bh,float r,float time,vec2 mouse,float lensBoost){",
+      "if(uQuality<0.5)return vec3(0);",
       "vec2 d=px-bh;float di=length(d);vec3 col=vec3(0);",
       "if(r<.5)return col;",
       "float tilt=.3;float sx=d.x,sy=d.y/cos(tilt);",
@@ -237,8 +247,9 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       "vec3 postProcess(vec3 col,vec2 uv,float time){",
       "float ca=.0015;float rad=length(uv-.5);",
       "float r=ca*rad;col.r=col.r*(1.-r)+col.g*r*.5;col.b=col.b*(1.-r)+col.g*r*.5;",
+      "if(uQuality>=2.){",
       "float grain=(h23(uv*vec2(1234.,5678.)+time*100.)-.5)*.025;",
-      "col+=grain;",
+      "col+=grain;}",
       "float vig=1.-dot(uv-.5,uv-.5)*.22;col*=vig;",
       "return col;}",
       "void main(){",
