@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { marked } from "marked";
 
 export default function ArticlesPanel({ userStatus, statusColor, onBack }) {
   const [articles, setArticles] = useState([]);
@@ -90,7 +91,10 @@ export default function ArticlesPanel({ userStatus, statusColor, onBack }) {
                     {content === undefined ? (
                       <span style={{ color: "rgba(255,255,255,.3)" }}>加载中...</span>
                     ) : (
-                      <p>{content}</p>
+                      <div
+                        className="md-content"
+                        dangerouslySetInnerHTML={{ __html: marked.parse(content) }}
+                      />
                     )}
                   </div>
                 )}
