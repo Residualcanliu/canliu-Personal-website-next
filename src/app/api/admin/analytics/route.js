@@ -3,9 +3,11 @@ import { db } from "@/db/index";
 import { visitLogs, articles } from "@/db/schema";
 import { sql, count, gte, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { checkAdmin } from "@/lib/auth-check";
+import { checkAdmin, checkOrigin } from "@/lib/auth-check";
 
-export async function GET() {
+export async function GET(request) {
+  const csrfErr = checkOrigin(request);
+  if (csrfErr) return csrfErr;
   const session = await auth();
   if (!(await checkAdmin(session?.user?.id))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -78,7 +80,9 @@ export async function GET() {
 }
 
 // DELETE /api/admin/analytics —— 清空访问记录
-export async function DELETE() {
+export async function DELETE(request) {
+  const csrfErr = checkOrigin(request);
+  if (csrfErr) return csrfErr;
   const session = await auth();
   if (!(await checkAdmin(session?.user?.id))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

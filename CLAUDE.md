@@ -4,15 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Next.js 16 + React 19 personal website. Black hole / gravitational lensing background rendered with Three.js + custom GLSL shaders, four real constellation star charts at screen corners, five-page panel navigation. Tailwind CSS v4.
+Next.js 16 + React 19 全栈个人网站。前端 Three.js 黑洞引力透镜 + GLSL 星座星图，后端 Neon PostgreSQL + Drizzle ORM + Auth.js GitHub OAuth，Vercel 部署。Tailwind CSS v4。
+
+线上地址：`https://canliuweb.cc.cd`
 
 ## Commands
 
 ```bash
-npm run dev      # dev server (default port 3000)
-npm run build    # production build
-npm run start    # production server
+npm run dev      # 本地开发 (localhost:3000)
+npm run build    # 生产构建
+npm run start    # 生产服务器
 npm run lint     # eslint
+
+# 本地开发绕登录：访问 http://localhost:3000/dev/login
+# 数据库迁移（新增表后）：
+cp .env.local .env && npx drizzle-kit push && rm .env
 ```
 
 ## Architecture
@@ -20,68 +26,80 @@ npm run lint     # eslint
 ```
 src/
 ├── app/
-│   ├── globals.css   # 全部自定义样式（玻璃拟态导航、面板、星座热区）
-│   ├── layout.js     # 根布局（<html lang="zh-CN">）
-│   └── page.js       # 主页面 — "use client"，组合 BlackHole + 导航 + 面板
-└── components/
-    └── BlackHole.jsx # Three.js 渲染 — 全部 GLSL 着色器 + 动画循环 + BH移动
+│   ├── globals.css          # 全部自定义样式（导航/面板/星座热区/头像/留言气泡）
+│   ├── layout.js            # 根布局 + TrackView 全局埋点
+│   ├── page.js              # 主页面 "use client" — BlackHole + 导航 + 面板 + 设置
+│   ├── Guestbook.jsx        # 留言板组件（表单/emoji选择器/气泡展示）
+│   ├── admin/               # 后台管理页面
+│   │   ├── layout.js        # 侧边栏导航布局（7 板块）
+│   │   ├── page.js          # 仪表盘（文章数/今日访问/总访问）
+│   │   ├── analytics/       # 访问统计（折线图 + 热力图 + Top10）
+│   │   ├── articles/        # 文章 CRUD（列表/新建/编辑/ArticleForm）
+│   │   ├── messages/        # 留言审核（通过/拒绝/删除）
+│   │   ├── settings/        # 网站设置（状态文字 + 圆点颜色）
+│   │   ├── projects/        # 项目管理（占位）
+│   │   └── pegasus/         # 天马座存档（占位）
+│   └── api/
+│       ├── auth/[...nextauth]/  # Auth.js 路由
+│       ├── admin/               # admin API（鉴权）
+│       │   ├── analytics/       # 访问统计（并行查询）
+│       │   ├── articles/        # 文章 CRUD
+│       │   ├── messages/        # 留言审核
+│       │   └── settings/        # 设置读写
+│       ├── articles/            # 公开文章 API
+│       ├── messages/            # 公开留言 API（提交+列表）
+│       ├── settings/            # 公开设置 API（读状态）
+│       └── track/               # 埋点（过滤 bot + admin 路径）
+├── components/
+│   ├── BlackHole.jsx       # Three.js 全部渲染逻辑（forwardRef，接受 speed/attract ref）
+│   └── TrackView.jsx       # 页面访问埋点组件
+├── db/
+│   ├── schema.js           # Drizzle 表定义（6 表）
+│   └── index.js            # Neon HTTP 连接
+├── lib/
+│   └── auth-check.js       # 数据库直查 githubUsername 判定管理员
+├── auth.js                 # Auth.js v5 配置（GitHub OAuth + DrizzleAdapter）
+└── middleware.js            # /admin + /api/admin 鉴权拦截
 ```
 
-### BlackHole.jsx — Three.js 核心 (~350行)
+## Database — Neon PostgreSQL + Drizzle ORM
 
-"use client" 组件。`useEffect` 挂载 Three.js WebGL 渲染器，`useEffect cleanup` 释放资源。
+**6 张表：**
+| 表 | 用途 |
+|------|------|
+| `user` | Auth.js 用户（含自定义 githubUsername / isAdmin） |
+| `account` | OAuth 账号关联 |
+| `session` | 数据库会话 |
+| `article` | 文章（title/slug/content/excerpt/published） |
+| `visitLog` | 访问日志（path/ip/ua/referer） |
+| `message` | 留言板（name/content/msgStatus/approved） |
+| `setting` | 键值对设置（key/value） |
 
-包含：
-- Canvas 初始化 + 画布纹理生成（"欢迎来到我的频道" + 提示小字）
-- 完整 GLSL 片段着色器（~280行 GLSL 源码）
-- BH 移动：鼠标吸引（<45% 屏幕）→ 随机路标巡逻（恒定速度 50px/s）
-- 键盘 (R 重置) / 鼠标 / resize 事件
-- FPS 时钟 + requestAnimationFrame 循环
+**连接方式：** `@neondatabase/serverless` HTTP driver，drizzle-kit 管理 migration。
 
-### page.js — 页面系统
+**注意：** `db.execute()` 在 Neon HTTP driver 上不可靠，用 Drizzle query builder 或原生 `neon()` SQL 模板。
 
-`useState(current)` 管理打开面板，`useCallback(show/hide)` 控制切换。包含导航栏 5 项、四角星座点击热区、五个半透明面板（pn-home / pn-profile / pn-or / pn-ly / pn-cy）。Esc 键关闭。
+## Auth — Auth.js v5 + GitHub OAuth
 
-### 样式 (globals.css)
+- 配置：`src/auth.js`，使用 DrizzleAdapter 数据库会话
+- 管理员白名单：环境变量 `ADMIN_GITHUB_USERS` 逗号分隔
+- 鉴权方式：API 和页面端统一用 `checkAdmin(userId)` 查数据库 githubUsername（不用 session.user.isAdmin，因为 DrizzleAdapter 不填自定义字段）
+- `events.linkAccount` + `signIn` 回调自动写入 githubUsername
+- Session 30 天有效期，24h 续期
+- 本地开发：`/dev/login` 一键绕过 OAuth（该目录已 gitignore）
 
-玻璃拟态导航 (`backdrop-filter: blur`)，半透明面板 (`rgba(2,2,12,.65)`)，星座热区 (22vmin)，暗色背景 `#020208`。
+## BlackHole.jsx — Three.js 核心
 
-## Dependencies
+`forwardRef` 组件，通过 `useImperativeHandle` 暴露 `{ speed, attract }` 给 page.js 动画循环读取。
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| three | 0.185 | WebGL rendering |
-| next | 16.2 | Framework |
-| react/react-dom | 19.2 | UI |
-| tailwindcss | 4 | Utility CSS |
+**缩放星座坐标：** 四个星座星点已按质心等比缩放到 60%，修改时需同步调整 CSS 热区位置。
 
-## Shader pipeline (GLSL main 渲染顺序)
+**控制面板：** nav 栏 "控制黑洞" 按钮，速度 20-160 px/s，吸附 15%-65%。
 
-1. `renderBackground(uv)` — FBM 星云 (gas/dust/emission)
-2. `renderStars(uv, time)` — 7 层程序化星空
-3. `lensDeflect(px, bh, r)` — 引力偏折 `r²*14/distance` + 阴影
-4. Background blend: unlensed → lensed (`blendLens`, `infR=r*12`, `lensMag`)
-5. Shadow + `renderConstellations(luv, time)` — 四星座（透镜 UV）
-6. `renderEventHorizon(px, bh, r)` — 纯暗球体
-7. `renderDisk(px, bh, r, time)` — 三段式吸积盘（下/上/中盘桥接）
-8. Text overlay → `toneMapping` (ACES) → `postProcess` (CA + grain + vignette)
+## Key patterns
 
-## Four constellations (真实实测坐标，GLSL 编码)
-
-| 方位 | 星座 | 页面 | 星数 | 特征 |
-|------|------|------|------|------|
-| 左上 | ♌ Leo | 个人(profile) | 9 | 镰刀弧 + 躯干 + 尾巴 |
-| 右上 | 🗡 Orion | 项目(or) | 17 | 沙漏躯干 + 三星腰带 + 臂分叉 |
-| 左下 | ♫ Lyra | 文章(ly) | 5 | 平行四边形 + 织女星 |
-| 右下 | 🦢 Cygnus | 联系(cy) | 9 | 北十字竖轴 + 左右翼 |
-
-## GLSL 常见陷阱
-
-- `smoothstep(a, a, x)` — 边相等 → NaN → 黑屏
-- `normalize(vec2(0))` → NaN
-- `doppler`: 已从 `sin(beamAngle*0.5)` → `cos(beamAngle)` 修复 ±π 不连续性
-- 坐标空间：`uBH` y-up (Three.js)，CSS y-down
-
-## 迁移来源
-
-v2.0 从单 HTML 文件迁移而来。原项目备份在 `canliu-Personal-website` 仓库，v1.2。完整的视觉和行为逻辑原封保留。
+- `.env.local` 含真实密钥，已 gitignore
+- `src/app/dev/` 已 gitignore，本地开发专用
+- 埋点 `POST /api/track` 过滤 bot UA + admin/api/dev 路径
+- CSS 全局 `nav` 样式会污染 admin 侧边栏 `<nav>`，需显式 reset position/display
+- admin 页面不使用全局 nav/BlackHole，独立布局

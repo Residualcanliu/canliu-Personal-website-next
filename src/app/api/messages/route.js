@@ -14,7 +14,7 @@ export async function GET() {
   return NextResponse.json(rows);
 }
 
-// POST /api/messages — 提交留言（待审核）
+// POST /api/messages — 提交留言（待审核，IP 频率限制 30s）
 export async function POST(req) {
   try {
     const body = await req.json();
@@ -24,11 +24,29 @@ export async function POST(req) {
     if (!name || !content) {
       return NextResponse.json({ error: "请填写昵称和留言内容" }, { status: 400 });
     }
+
+    const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0]?.trim().slice(0, 64) || "unknown";
+
+    // 同一 IP 30 秒内只能提交一次
+    const recent = await db
+      .select({ createdAt: messages.createdAt })
+      .from(messages)
+      .where(eq(messages.ip, ip))
+      .orderBy(desc(messages.createdAt))
+      .limit(1);
+    if (recent[0]) {
+      const elapsed = Date.now() - new Date(recent[0].createdAt).getTime();
+      if (elapsed < 30_000) {
+        return NextResponse.json({ error: "提交太频繁，请稍后再试" }, { status: 429 });
+      }
+    }
+
     await db.insert(messages).values({
       id: crypto.randomUUID(),
       name,
       content,
       msgStatus,
+      ip,
       approved: 0,
       createdAt: new Date(),
     });

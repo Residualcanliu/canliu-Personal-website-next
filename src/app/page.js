@@ -36,17 +36,20 @@ export default function Home() {
     }
   }, [speed, attract]);
 
-  // 加载个人状态
+  // 加载个人状态（300ms debounce，防快速切换面板触发大量请求）
   useEffect(() => {
-    Promise.all([
-      fetch("/api/settings?key=status").then((r) => r.json()),
-      fetch("/api/settings?key=statusColor").then((r) => r.json()),
-    ])
-      .then(([s, c]) => {
-        setUserStatus(s.value || "");
-        setStatusColor(c.value || "#4f4");
-      })
-      .catch(() => {});
+    const timer = setTimeout(() => {
+      Promise.all([
+        fetch("/api/settings?key=status").then((r) => r.json()),
+        fetch("/api/settings?key=statusColor").then((r) => r.json()),
+      ])
+        .then(([s, c]) => {
+          setUserStatus(s.value || "");
+          setStatusColor(c.value || "#4f4");
+        })
+        .catch(() => {});
+    }, 300);
+    return () => clearTimeout(timer);
   }, [current]);
 
   const show = useCallback((id) => {

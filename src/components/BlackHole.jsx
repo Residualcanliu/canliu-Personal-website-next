@@ -68,7 +68,23 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       te.needsUpdate = true;
     }
     drawTexture();
-    const clockTimer = setInterval(drawTexture, 1000);
+    let clockTimer = setInterval(drawTexture, 1000);
+
+    // 标签页隐藏时暂停渲染，节省资源
+    let animId, paused = false;
+    const onVisibility = () => {
+      if (document.hidden) {
+        paused = true;
+        cancelAnimationFrame(animId);
+        clearInterval(clockTimer);
+        clockTimer = null;
+      } else if (paused) {
+        paused = false;
+        animId = requestAnimationFrame(A);
+        clockTimer = setInterval(drawTexture, 1000);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
 
     const U = {
       uRes: { value: RE },
@@ -284,7 +300,6 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
     // Animation
     const clock = new THREE.Clock();
     let first = true;
-    let animId;
     function A(ts) {
       animId = requestAnimationFrame(A);
       const dt = Math.min(clock.getDelta(), 0.1);
@@ -299,7 +314,8 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       const dx = mouse.x - bh.x, dy = mouse.y - bh.y;
       const distToMouse = Math.sqrt(dx * dx + dy * dy);
       const s = selfRef.current;
-      const attractRange = Math.min(innerWidth, innerHeight) * s.attract;
+      const attract = Math.min(Math.max(s.attract || 0.45, 0.05), 0.8);
+      const attractRange = Math.min(innerWidth, innerHeight) * attract;
       const distToTarget = Math.sqrt((bh.x - camDrift.waypointX) ** 2 + (bh.y - camDrift.waypointY) ** 2);
       camDrift.zoom -= dt;
       if (camDrift.zoom <= 0 || distToTarget < 60) {
@@ -316,7 +332,7 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       }
       let tx = bhTarget.x - bh.x, ty = bhTarget.y - bh.y;
       const td = Math.sqrt(tx * tx + ty * ty);
-      const patrolSpeed = s.speed;
+      const patrolSpeed = Math.min(Math.max(s.speed || 50, 10), 200);
       const chaseSpeed = patrolSpeed * 2.4;
       const speed = (mouseOn && distToMouse < attractRange) ? chaseSpeed : patrolSpeed;
       if (td > 1) { const step = Math.min(speed * dt, td); bh.x += tx / td * step; bh.y += ty / td * step; }
@@ -341,7 +357,8 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
 
     return () => {
       cancelAnimationFrame(animId);
-      clearInterval(clockTimer);
+      if (clockTimer) clearInterval(clockTimer);
+      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("keydown", handleKey);
       window.removeEventListener("resize", handleResize);
       R.dispose();
