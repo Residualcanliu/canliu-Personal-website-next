@@ -1,0 +1,5 @@
+name: canliu_status
+author: gch
+desc: 查询 canliuweb.cc.cd 网站实时状态，包括今日访问量、总访问量、文章数量、当前状态。LLM 会自动判断何时调用。
+version: 1.2.0
+repo: https://github.com/Residualcanliu/canliu-Personal-website-next

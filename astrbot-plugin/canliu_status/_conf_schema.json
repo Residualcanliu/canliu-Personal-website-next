@@ -1,0 +1,12 @@
+{
+    "api_url": {
+        "description": "Bot API 地址",
+        "type": "string",
+        "default": "https://canliuweb.cc.cd/api/bot/status"
+    },
+    "api_key": {
+        "description": "API 密钥（与网站 .env.local 中的 API_KEY 一致）",
+        "type": "string",
+        "obvious_hint": true
+    }
+}
