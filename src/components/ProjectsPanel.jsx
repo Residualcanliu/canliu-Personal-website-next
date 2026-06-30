@@ -1,8 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { marked } from "marked";
 
-const ICONS = ["🕳", "🤖", "⛏", "🌟", "🔧", "🎮"];
+const COLORS = [
+  ["rgba(160,200,255,0.9)", "rgba(100,150,240,0.5)"],   // 蓝
+  ["rgba(180,160,255,0.9)", "rgba(130,100,230,0.5)"],   // 紫
+  ["rgba(140,220,210,0.9)", "rgba(80,180,170,0.5)"],    // 青
+  ["rgba(255,180,140,0.9)", "rgba(240,130,80,0.5)"],    // 橙
+  ["rgba(200,220,160,0.9)", "rgba(160,180,100,0.5)"],   // 绿
+  ["rgba(255,160,180,0.9)", "rgba(230,100,130,0.5)"],   // 粉
+];
 
 export default function ProjectsPanel({ onBack }) {
   const [projects, setProjects] = useState([]);
@@ -147,9 +155,15 @@ export default function ProjectsPanel({ onBack }) {
 
             {/* 标题行 */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: isSel ? 10 : 6 }}>
-              <span style={{ fontSize: isSel ? "2rem" : "1.6rem", transition: "font-size 0.5s" }}>
-                {ICONS[i % ICONS.length]}
-              </span>
+              <span style={{
+                display: "inline-block",
+                width: isSel ? 28 : 22, height: isSel ? 28 : 22,
+                borderRadius: "50%",
+                background: `radial-gradient(circle at 35% 35%, ${COLORS[i % COLORS.length][0]} 0%, ${COLORS[i % COLORS.length][1]} 60%, transparent 100%)`,
+                boxShadow: `0 0 ${isSel ? 16 : 10}px ${COLORS[i % COLORS.length][1]}`,
+                transition: "width 0.5s, height 0.5s, box-shadow 0.5s",
+                flexShrink: 0,
+              }} />
               <span style={{
                 fontSize: isSel ? "1.15rem" : "0.9rem",
                 fontWeight: 600,
@@ -168,7 +182,11 @@ export default function ProjectsPanel({ onBack }) {
               marginBottom: isSel ? 14 : 10,
               transition: "font-size 0.5s",
             }}>
-              {isSel ? proj.content : (shortDesc || "暂无描述")}
+              {isSel ? (
+                <div className="md-content" dangerouslySetInnerHTML={{ __html: marked.parse(proj.content || "") }} />
+              ) : (
+                shortDesc || "暂无描述"
+              )}
             </div>
 
             {/* 标签 */}
@@ -217,8 +235,8 @@ export default function ProjectsPanel({ onBack }) {
                     GitHub →
                   </a>
                 ) : (
-                  <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.2)", fontStyle: "italic" }}>
-                    链接待补充
+                  <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.18)", fontStyle: "italic" }}>
+                    暂无公开链接
                   </span>
                 )}
                 <div style={{ marginTop: 10, fontSize: "0.65rem", color: "rgba(255,255,255,0.2)" }}>

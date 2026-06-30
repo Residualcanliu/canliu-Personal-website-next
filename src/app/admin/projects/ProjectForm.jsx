@@ -10,6 +10,7 @@ export default function ProjectForm({ initial = null }) {
   const [content, setContent] = useState(initial?.content || "");
   const [tags, setTags] = useState(initial?.tags || "");
   const [link, setLink] = useState(initial?.link || "");
+  const [linkMode, setLinkMode] = useState(initial?.link ? "url" : "text");
   const [published, setPublished] = useState(!!initial?.published);
   const [saving, setSaving] = useState(false);
 
@@ -17,7 +18,7 @@ export default function ProjectForm({ initial = null }) {
     e.preventDefault();
     if (!title.trim()) return alert("标题不能为空");
     setSaving(true);
-    const body = { title, content, tags, link, published };
+    const body = { title, content, tags, link: linkMode === "url" ? link : "", published };
     const url = isEdit ? `/api/admin/projects/${initial.id}` : "/api/admin/projects";
     const method = isEdit ? "PUT" : "POST";
     try {
@@ -63,10 +64,30 @@ export default function ProjectForm({ initial = null }) {
       </div>
 
       <div style={fieldStyle}>
-        <label style={labelStyle}>链接</label>
-        <input style={inputStyle} value={link}
-          onChange={e => setLink(e.target.value)} placeholder="https://github.com/..." />
+        <label style={labelStyle}>项目类型</label>
+        <div style={{ display: "flex", gap: 20 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.88rem", cursor: "pointer" }}>
+            <input type="radio" name="linkMode" checked={linkMode === "url"}
+              onChange={() => setLinkMode("url")}
+              style={{ width: 16, height: 16, cursor: "pointer" }} />
+            超链接（点击跳转外部地址）
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.88rem", cursor: "pointer" }}>
+            <input type="radio" name="linkMode" checked={linkMode === "text"}
+              onChange={() => { setLinkMode("text"); setLink(""); }}
+              style={{ width: 16, height: 16, cursor: "pointer" }} />
+            纯文字（暂不公开 / 闭源项目）
+          </label>
+        </div>
       </div>
+
+      {linkMode === "url" && (
+        <div style={fieldStyle}>
+          <label style={labelStyle}>链接地址</label>
+          <input style={inputStyle} value={link}
+            onChange={e => setLink(e.target.value)} placeholder="https://github.com/..." />
+        </div>
+      )}
 
       <div style={fieldStyle}>
         <label style={labelStyle}>正文（Markdown）</label>
