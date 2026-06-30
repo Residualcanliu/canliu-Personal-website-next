@@ -84,6 +84,18 @@ export const messages = pgTable("message", {
   createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
 });
 
+/* ---- 项目表 ---- */
+export const projects = pgTable("project", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").default(""),       // Markdown 内容
+  tags: text("tags").default(""),             // 逗号分隔标签
+  link: text("link"),                         // 项目链接
+  published: integer("published").default(0), // 0=草稿 1=发布
+  createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
+  updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow(),
+});
+
 /* ---- 站点设置（键值对） ---- */
 export const settings = pgTable("setting", {
   key: text("key").primaryKey(),

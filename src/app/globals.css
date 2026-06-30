@@ -99,3 +99,4 @@ nav .links a:hover{color:var(--nav-fg);background:var(--nav-hover)}
 .comment-msg{font-size:.72rem;color:rgba(255,255,255,.3);margin-top:6px}
 .comment-no-open{color:rgba(255,255,255,.15);font-size:.78rem;text-align:center;padding-top:12px}
 @media(max-width:640px){nav{padding:0 14px;height:48px}nav .brand{font-size:0.9rem}nav .links a{font-size:0.78rem;padding:5px 10px}.hint{bottom:18px;font-size:0.7rem}.cz{width:16vmin;height:16vmin}.pn-home-layout{flex-direction:column;gap:24px;text-align:center}.pn-home-layout .left{flex:0 0 auto}}
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }

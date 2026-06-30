@@ -550,7 +550,7 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       } else if (paused) {
         paused = false;
         animId = requestAnimationFrame(render);
-        clockTimer = setInterval(drawTexture, 1000);
+        clockTimer = setInterval(updateOverlay, 1000);
       }
     };
     document.addEventListener("visibilitychange", onVisibility);

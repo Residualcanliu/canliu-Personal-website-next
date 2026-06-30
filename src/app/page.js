@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import BlackHole from "@/components/BlackHole";
 import Guestbook from "./Guestbook";
 import ArticlesPanel from "@/components/ArticlesPanel";
+import ProjectsPanel from "@/components/ProjectsPanel";
 
 const PAGES = [
   { id: "home", label: "首页" },
@@ -238,8 +239,7 @@ export default function Home() {
 
       <div className={"panel" + (current === "or" ? " on" : "")} id="pn-or">
         <button className="close" onClick={hide}>&times;</button>
-        <span>🗡 猎户座 · 项目</span>
-        <a className="home-btn" onClick={hide}>← 返回主页</a>
+        <ProjectsPanel onBack={hide} />
       </div>
 
       <div className={"panel" + (current === "ly" ? " on" : "")} id="pn-ly">
