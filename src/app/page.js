@@ -27,15 +27,18 @@ export default function Home() {
   const [attract, setAttract] = useState(0.45);
   const [userStatus, setUserStatus] = useState("");
   const [statusColor, setStatusColor] = useState("#4f4");
+  const [bhMode, setBhMode] = useState(1); // 0=classic 1=ray-traced
   const bhRef = useRef(null);
+  const isDesktop = typeof window !== "undefined" ? window.innerWidth >= 1024 : true;
 
-  // 把设置直接写到 ref 对象上（动画循环读 selfRef.current.speed / .attract）
+  // 把设置直接写到 ref 对象上（动画循环读 selfRef.current）
   useEffect(() => {
     if (bhRef.current) {
       bhRef.current.speed = speed;
       bhRef.current.attract = attract;
+      bhRef.current.bhMode = bhMode;
     }
-  }, [speed, attract]);
+  }, [speed, attract, bhMode]);
 
   // 加载个人状态（300ms debounce，防快速切换面板触发大量请求）
   useEffect(() => {
@@ -76,6 +79,27 @@ export default function Home() {
 
           {/* 黑洞控制 */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* 黑洞模式切换 */}
+          <button
+            onClick={() => {
+              if (bhMode === 0 && !isDesktop) {
+                if (!confirm("⚠ 你的设备配置较低，切换到光线追踪模式可能会卡顿。确定切换吗？")) return;
+              }
+              setBhMode(bhMode === 1 ? 0 : 1);
+            }}
+            title={bhMode === 1 ? "当前：光线追踪（参考屏保）" : "当前：经典版（原版效果）"}
+            style={{
+              padding: "3px 10px",
+              fontSize: "0.7rem",
+              color: bhMode === 1 ? "rgba(180,220,255,0.85)" : "rgba(255,255,255,0.45)",
+              background: bhMode === 1 ? "rgba(100,160,255,0.15)" : "rgba(255,255,255,0.05)",
+              border: bhMode === 1 ? "1px solid rgba(140,180,255,0.3)" : "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 5,
+              cursor: "pointer",
+            }}
+          >
+            {bhMode === 1 ? "✦ 光线追踪" : "◇ 经典版"}
+          </button>
           {!showCfg ? (
             <button
               onClick={() => setShowCfg(true)}
@@ -215,7 +239,11 @@ export default function Home() {
         <a className="home-btn" onClick={hide}>← 返回主页</a>
       </div>
 
-      <div className="hint" id="hint">made by gch / 残留v枫楪</div>
+      <div className="hint" id="hint">
+        made by gch / 残留v枫楪
+        <br />
+        <span style={{ fontSize: "0.75rem", opacity: 0.85 }}>建议用电脑打开，效果更佳</span>
+      </div>
     </>
   );
 }
