@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import BlackHole from "@/components/BlackHole";
+import BlackHole, { PRESETS } from "@/components/BlackHole";
 import Guestbook from "./Guestbook";
 import ArticlesPanel from "@/components/ArticlesPanel";
 import ProjectsPanel from "@/components/ProjectsPanel";
@@ -36,6 +36,13 @@ export default function Home() {
   const [userStatus, setUserStatus] = useState("");
   const [statusColor, setStatusColor] = useState("#4f4");
   const bhRef = useRef(null);
+
+  // 把预设参数转成 cust 格式
+  const presetToCust = (p) => p ? {
+    temp: p.temp, incl: p.incl, roll: p.roll, inner: p.inner, outer: p.outer,
+    opac: p.opac, dopp: p.dopp, beam: p.beam, gain: p.gain, contr: p.contr,
+    wind: p.wind, speed: p.speed, expo: p.expo, star: p.star,
+  } : null;
 
   // 预设名称（对应 BlackHole.jsx PRESETS）
   const PRESET_NAMES = [
@@ -149,7 +156,7 @@ export default function Home() {
                     <label key={key} style={{ display:"flex",alignItems:"center",gap:6 }}>
                       <span style={{ minWidth: 70, fontSize: "0.65rem", color: "rgba(255,255,255,0.5)" }}>{label}</span>
                       <input type="range" min={min} max={max} step={step} value={cust[key]}
-                        onChange={e => { setPreset(-1); setCust(prev => ({...prev, [key]: +e.target.value})); }}
+                        onChange={e => { setCust(prev => { const base = preset >= 0 ? presetToCust(PRESETS[preset]) : prev; return {...base, [key]: +e.target.value}; }); setPreset(-1); }}
                         style={{ flex: 1, minWidth: 80, accentColor: "rgba(140,180,255,0.8)", height: 12 }} />
                       <span style={{ minWidth: 50, textAlign: "right", fontSize: "0.65rem", color: "rgba(255,255,255,0.45)" }}>{fmt(cust[key])}</span>
                     </label>
@@ -164,7 +171,7 @@ export default function Home() {
                     <label key={key} style={{ display:"flex",alignItems:"center",gap:6 }}>
                       <span style={{ minWidth: 70, fontSize: "0.65rem", color: "rgba(255,255,255,0.5)" }}>{label}</span>
                       <input type="range" min={min} max={max} step={step} value={cust[key]}
-                        onChange={e => { setPreset(-1); setCust(prev => ({...prev, [key]: +e.target.value})); }}
+                        onChange={e => { setCust(prev => { const base = preset >= 0 ? presetToCust(PRESETS[preset]) : prev; return {...base, [key]: +e.target.value}; }); setPreset(-1); }}
                         style={{ flex: 1, minWidth: 80, accentColor: "rgba(140,180,255,0.8)", height: 12 }} />
                       <span style={{ minWidth: 40, textAlign: "right", fontSize: "0.65rem", color: "rgba(255,255,255,0.45)" }}>{fmt(cust[key])}</span>
                     </label>
@@ -177,7 +184,7 @@ export default function Home() {
                     <label key={key} style={{ display:"flex",alignItems:"center",gap:6 }}>
                       <span style={{ minWidth: 70, fontSize: "0.65rem", color: "rgba(255,255,255,0.5)" }}>{label}</span>
                       <input type="range" min={min} max={max} step={step} value={cust[key]}
-                        onChange={e => { setPreset(-1); setCust(prev => ({...prev, [key]: +e.target.value})); }}
+                        onChange={e => { setCust(prev => { const base = preset >= 0 ? presetToCust(PRESETS[preset]) : prev; return {...base, [key]: +e.target.value}; }); setPreset(-1); }}
                         style={{ flex: 1, minWidth: 80, accentColor: "rgba(140,180,255,0.8)", height: 12 }} />
                       <span style={{ minWidth: 40, textAlign: "right", fontSize: "0.65rem", color: "rgba(255,255,255,0.45)" }}>{fmt(cust[key])}</span>
                     </label>

@@ -5,7 +5,7 @@ import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 // ══════════════════════════════════════════════════════════════════════
 //  Presets — ported from ghostty-blackhole DEMO_TOUR
 // ══════════════════════════════════════════════════════════════════════
-const PRESETS = [
+export const PRESETS = [
   { name:'Inferno — 烈焰', temp:5500, incl:1.50, roll:2.7, inner:1.8, outer:8.0, opac:0.90, dopp:0.60, beam:2.5, gain:2.2, contr:1.6, wind:7.0, speed:5.0, expo:1.40, star:0.0 },
   { name:'Gargantua — 巨浪', temp:4500, incl:1.52, roll:2.7, inner:2.2, outer:7.0, opac:0.85, dopp:0.35, beam:2.0, gain:1.4, contr:0.5, wind:7.0, speed:5.0, expo:1.20, star:0.0 },
   { name:'M87* Donut — 甜甜圈', temp:3800, incl:0.55, roll:2.7, inner:2.2, outer:6.0, opac:0.45, dopp:0.90, beam:3.5, gain:1.6, contr:0.4, wind:3.0, speed:2.5, expo:1.10, star:0.0 },
