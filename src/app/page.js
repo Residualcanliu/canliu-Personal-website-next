@@ -217,7 +217,7 @@ export default function Home() {
           </div>
           <div className="right">
             <h2>个人简介</h2>
-            <div className="bio">一个喜欢猫、也有想法的人，欢迎来到我的个人空间，这里记录了我的项目、文章和想法。本网站采用 Next.js + Three.js + GLSL 构建，黑洞引力透镜与星座星图均为实时渲染。</div>
+            <div className="bio">一个喜欢猫、也有想法的人，欢迎来到我的个人空间，这里记录了我的项目、文章和想法。本网站采用 Next.js + WebGL 2 构建，黑洞基于 ghostty-blackhole (XboxNahida) 的 Schwarzschild 光线追踪着色器，实现引力透镜、吸积盘、光子环等相对论效应实时渲染。</div>
             <div className="profile-links">
               如果你对网站中的项目、文章、想法、甚至对此网站的设计感兴趣，欢迎一起交流分享，也欢迎大家在网站留言，这片星空将会留下属于你的足迹：
               <br /><br />
@@ -262,7 +262,7 @@ export default function Home() {
           <div className="right">
             <h2>✦ 我的空间</h2>
             <div className="bio">欢迎来到我的个人网站。这里记录了我的项目、文章和想法。黑洞在中心旋转，像引力一样把一切连接在一起。</div>
-            <div className="tags"><span>Three.js</span><span>GLSL</span><span>WebGL</span><span>个人博客</span></div>
+            <div className="tags"><span>WebGL 2</span><span>Schwarzschild 光线追踪</span><span>GLSL</span><span>个人博客</span></div>
           </div>
         </div>
         <a className="home-btn" onClick={hide}>← 返回主页</a>
