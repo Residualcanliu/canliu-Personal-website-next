@@ -228,6 +228,8 @@ export default function Home() {
               Steam：<a href="https://steamcommunity.com/profiles/76561198867504448/" target="_blank" rel="noopener">steamcommunity.com/profiles/76561198867504448/</a>
               <br />
               Email：<a href="mailto:gaochaohongmain@foxmail.com">gaochaohongmain@foxmail.com</a>
+              <br /><br />
+              黑洞效果参考：<a href="https://github.com/XboxNahida/ghostty-blackhole-main" target="_blank" rel="noopener">github.com/XboxNahida/ghostty-blackhole-main</a>
             </div>
           </div>
         </div>
