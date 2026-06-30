@@ -11,6 +11,12 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
 
   useEffect(() => {
     const c = canvasRef.current;
+    // 手机端：不初始化 Three.js，仅显示深色背景
+    if (innerWidth < 640) {
+      c.style.background = "radial-gradient(ellipse at center, #0d0d1a 0%, #050510 100%)";
+      c.width = innerWidth; c.height = innerHeight;
+      return () => {};
+    }
     let h = document.getElementById("hint");
     if (!h) { h = document.createElement("div"); h.id = "hint"; h.className = "hint"; document.body.appendChild(h); }
 

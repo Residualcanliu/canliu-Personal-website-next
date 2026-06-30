@@ -73,11 +73,7 @@ export default function Home() {
 
   return (
     <>
-      {isDesktop ? (
-        <BlackHole ref={bhRef} />
-      ) : (
-        <div style={{ position: "fixed", inset: 0, background: "radial-gradient(ellipse at center, #0d0d1a 0%, #050510 100%)", zIndex: -1 }} />
-      )}
+      <BlackHole ref={bhRef} />
 
       <nav>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
