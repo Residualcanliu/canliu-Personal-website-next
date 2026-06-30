@@ -28,6 +28,7 @@ export default function Home() {
   const [userStatus, setUserStatus] = useState("");
   const [statusColor, setStatusColor] = useState("#4f4");
   const [bhMode, setBhMode] = useState(1); // 0=classic 1=ray-traced
+  const [forceRT, setForceRT] = useState(false); // 测试：强制光线追踪
   const bhRef = useRef(null);
   const isDesktop = typeof window !== "undefined" ? window.innerWidth >= 1024 : true;
 
@@ -37,8 +38,9 @@ export default function Home() {
       bhRef.current.speed = speed;
       bhRef.current.attract = attract;
       bhRef.current.bhMode = bhMode;
+      bhRef.current.forceRT = forceRT;
     }
-  }, [speed, attract, bhMode]);
+  }, [speed, attract, bhMode, forceRT]);
 
   // 加载个人状态（300ms debounce，防快速切换面板触发大量请求）
   useEffect(() => {
@@ -153,6 +155,27 @@ export default function Home() {
                 }}
               >
                 x
+              </button>
+              {/* 测试按钮：手机端强制光线追踪 */}
+              <button
+                onClick={() => {
+                  if (!isDesktop && !forceRT) {
+                    if (!confirm("⚠ 手机端强制开启光线追踪会严重卡顿！确定测试？")) return;
+                  }
+                  setForceRT(!forceRT);
+                  if (!forceRT) setBhMode(1);
+                }}
+                style={{
+                  padding: "2px 8px",
+                  fontSize: "0.65rem",
+                  color: forceRT ? "rgba(255,180,100,0.85)" : "rgba(255,255,255,0.2)",
+                  background: forceRT ? "rgba(255,150,50,0.12)" : "rgba(255,255,255,0.03)",
+                  border: forceRT ? "1px solid rgba(255,150,50,0.3)" : "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                }}
+              >
+                测试按钮
               </button>
             </>
           )}

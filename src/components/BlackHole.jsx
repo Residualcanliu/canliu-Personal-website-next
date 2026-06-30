@@ -5,7 +5,7 @@ import * as THREE from "three";
 
 const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
   const canvasRef = useRef(null);
-  const selfRef = useRef({ speed: 50, attract: 0.45, bhMode: 1 });
+  const selfRef = useRef({ speed: 50, attract: 0.45, bhMode: 1, forceRT: false });
 
   useImperativeHandle(ref, () => selfRef.current, []);
 
@@ -460,8 +460,8 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       // 切换经典版 / 光线追踪 shader
       if (prevMode !== s.bhMode) {
         prevMode = s.bhMode;
-        // 非桌面设备强制经典版，桌面设备按用户选择
-        const useClassic = s.bhMode === 0 || !isDesktop;
+        // 非桌面设备强制经典版（测试按钮可覆盖），桌面设备按用户选择
+        const useClassic = s.bhMode === 0 || (!isDesktop && !s.forceRT);
         M.fragmentShader = useClassic && classicShader ? classicShader : FS_RAYTRACED;
         M.needsUpdate = true;
       }
