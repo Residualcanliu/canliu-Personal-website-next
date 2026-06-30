@@ -96,6 +96,17 @@ export const projects = pgTable("project", {
   updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow(),
 });
 
+/* ---- 音乐表 ---- */
+export const songs = pgTable("song", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  artist: text("artist").default(""),
+  url: text("url").notNull(),           // 音频 URL 或文件路径
+  cover: text("cover"),                 // 封面图（可选）
+  published: integer("published").default(0),
+  createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
+});
+
 /* ---- 站点设置（键值对） ---- */
 export const settings = pgTable("setting", {
   key: text("key").primaryKey(),

@@ -5,20 +5,21 @@ import BlackHole, { PRESETS } from "@/components/BlackHole";
 import Guestbook from "./Guestbook";
 import ArticlesPanel from "@/components/ArticlesPanel";
 import ProjectsPanel from "@/components/ProjectsPanel";
+import MusicPlayer from "@/components/MusicPlayer";
 
 const PAGES = [
   { id: "home", label: "首页" },
   { id: "profile", label: "个人" },
   { id: "or", label: "项目" },
   { id: "ly", label: "文章" },
-  { id: "cy", label: "联系" },
+  { id: "cy", label: "音乐" },
 ];
 
 const CORNERS = [
   { cls: "le", page: "profile", title: "狮子座 · 个人" },
   { cls: "or", page: "or",   title: "猎户座 · 项目" },
   { cls: "ly", page: "ly",   title: "天琴座 · 文章" },
-  { cls: "cy", page: "cy",   title: "天鹅座 · 联系" },
+  { cls: "cy", page: "cy",   title: "天鹅座 · 音乐" },
 ];
 
 export default function Home() {
@@ -36,6 +37,36 @@ export default function Home() {
   const [userStatus, setUserStatus] = useState("");
   const [statusColor, setStatusColor] = useState("#4f4");
   const bhRef = useRef(null);
+
+  // ── 音乐状态（跨面板共享）──
+  const [songs, setSongs] = useState([]);
+  const [songIdx, setSongIdx] = useState(-1);
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef(null);
+  useEffect(() => {
+    fetch("/api/music").then(r => r.json()).then(setSongs).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (!audioRef.current) audioRef.current = new Audio();
+    const a = audioRef.current;
+    if (songIdx >= 0 && songs[songIdx]) {
+      a.src = songs[songIdx].url;
+      a.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    }
+    const onEnd = () => { setSongIdx(i => (i + 1) % songs.length || 0); };
+    a.addEventListener("ended", onEnd);
+    return () => a.removeEventListener("ended", onEnd);
+  }, [songIdx, songs]);
+  const musicCtrl = {
+    play: (idx) => { setSongIdx(idx); },
+    toggle: () => {
+      const a = audioRef.current;
+      if (playing) { a?.pause(); setPlaying(false); }
+      else { a?.play().then(() => setPlaying(true)).catch(() => {}); }
+    },
+    next: () => { setSongIdx(i => (i + 1) % songs.length || 0); },
+    prev: () => { setSongIdx(i => (i - 1 + songs.length) % songs.length || 0); },
+  };
 
   // 把预设参数转成 cust 格式
   const presetToCust = (p) => p ? {
@@ -83,6 +114,7 @@ export default function Home() {
   }, [current]);
 
   const hide = useCallback(() => setCurrent(null), []);
+  const miniBtn = { width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", fontSize: "0.6rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") hide(); };
@@ -256,8 +288,7 @@ export default function Home() {
 
       <div className={"panel" + (current === "cy" ? " on" : "")} id="pn-cy">
         <button className="close" onClick={hide}>&times;</button>
-        <span>🦢 天鹅座 · 联系</span>
-        <a className="home-btn" onClick={hide}>← 返回主页</a>
+        <MusicPlayer onBack={hide} songs={songs} songIdx={songIdx} playing={playing} musicCtrl={musicCtrl} />
       </div>
 
       <div className={"panel" + (current === "home" ? " on" : "")} id="pn-home">
@@ -276,6 +307,40 @@ export default function Home() {
         </div>
         <a className="home-btn" onClick={hide}>← 返回主页</a>
       </div>
+
+      {/* 音乐悬浮条 */}
+      {songIdx >= 0 && songs[songIdx] && (
+        <div style={{
+          position: "fixed", top: 56, left: "50%", transform: "translateX(-50%)",
+          zIndex: 110, display: "flex", alignItems: "center", gap: 12,
+          padding: "8px 18px", borderRadius: 22,
+          background: "rgba(12,12,28,0.9)", border: "1px solid rgba(180,200,240,0.12)",
+          backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+        }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: "50%",
+            background: "radial-gradient(circle at 40% 40%, rgba(180,200,240,0.5), rgba(80,100,180,0.2))",
+            animation: playing ? "spin 3s linear infinite" : "none",
+          }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: "0.75rem", fontWeight: 500, color: "rgba(255,255,255,0.85)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
+              {songs[songIdx].title}
+            </div>
+            <div style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.35)" }}>
+              {songs[songIdx].artist || ""}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={musicCtrl.prev} style={miniBtn} title="上一首"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+            <button onClick={musicCtrl.toggle} style={{ ...miniBtn, width: 28, height: 28 }} title={playing ? "暂停" : "播放"}>
+              {playing ? <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                : <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>}
+            </button>
+            <button onClick={musicCtrl.next} style={miniBtn} title="下一首"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12z"/><rect x="16" y="6" width="2" height="12"/></svg></button>
+          </div>
+        </div>
+      )}
 
       <div className="hint" id="hint">
         made by gch / 残留v枫楪
