@@ -371,8 +371,13 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
     // 经典版 shader 文件（云端 v2.14 原版），运行时加载
     const FS_RAYTRACED = FS;
     let classicShader = null, prevMode = selfRef.current.bhMode;
+    const isDesktop = q >= 2;
     fetch("/blackhole_classic.glsl")
-      .then(r => r.text()).then(src => { classicShader = src; }).catch(() => {});
+      .then(r => r.text()).then(src => {
+        classicShader = src;
+        // 非桌面设备始终用经典版 shader
+        if (!isDesktop) { M.fragmentShader = classicShader; M.needsUpdate = true; }
+      }).catch(() => {});
 
     const M = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VS, fragmentShader: FS });
     S.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), M));
@@ -455,7 +460,9 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       // 切换经典版 / 光线追踪 shader
       if (prevMode !== s.bhMode) {
         prevMode = s.bhMode;
-        M.fragmentShader = s.bhMode === 0 && classicShader ? classicShader : FS_RAYTRACED;
+        // 非桌面设备强制经典版，桌面设备按用户选择
+        const useClassic = s.bhMode === 0 || !isDesktop;
+        M.fragmentShader = useClassic && classicShader ? classicShader : FS_RAYTRACED;
         M.needsUpdate = true;
       }
 
