@@ -73,7 +73,7 @@ export default function Home() {
 
   return (
     <>
-      <BlackHole ref={bhRef} />
+      {isDesktop && <BlackHole ref={bhRef} />}
 
       <nav>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -100,7 +100,7 @@ export default function Home() {
               cursor: "pointer",
             }}
           >
-            {bhMode === 1 ? "✦ 光线追踪" : "◇ 经典版"}
+            {bhMode === 1 ? "✦ 光线追踪 (仅电脑端)" : "◇ 经典版"}
           </button>
           {!showCfg ? (
             <button
