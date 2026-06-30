@@ -1,12 +1,41 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
 
 function LoginContent() {
   const params = useSearchParams();
+  const router = useRouter();
   const error = params.get("error");
+  const [showCred, setShowCred] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginErr, setLoginErr] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleCredLogin = async (e) => {
+    e.preventDefault();
+    setLoginErr("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/credential-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        setLoginErr(d.error || "登录失败");
+        return;
+      }
+      router.push("/admin");
+    } catch {
+      setLoginErr("网络错误");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div
@@ -40,6 +69,10 @@ function LoginContent() {
         </p>
       )}
 
+      {loginErr && (
+        <p style={{ color: "rgba(255,120,120,0.9)", fontSize: "0.85rem" }}>{loginErr}</p>
+      )}
+
       <button
         onClick={() => signIn("github", { callbackUrl: "/admin" })}
         style={{
@@ -62,9 +95,61 @@ function LoginContent() {
         Login with GitHub
       </button>
 
-      <p style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.8rem" }}>
-        仅限管理员账号登录
-      </p>
+      {/* 隐藏的账号密码登录入口 */}
+      {!showCred ? (
+        <p
+          onClick={() => setShowCred(true)}
+          style={{
+            color: "rgba(255,255,255,0.12)",
+            fontSize: "0.8rem",
+            cursor: "default",
+            userSelect: "none",
+          }}
+          title=""
+        >
+          仅限管理员账号登录
+        </p>
+      ) : (
+        <form
+          onSubmit={handleCredLogin}
+          style={{
+            display: "flex", flexDirection: "column", gap: 12,
+            width: 260, padding: 20,
+            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 10,
+          }}
+        >
+          <input
+            value={username} onChange={e => setUsername(e.target.value)}
+            placeholder="账号" autoFocus
+            style={{
+              padding: "8px 12px", fontSize: "0.9rem",
+              color: "#e5e7eb", background: "#111827",
+              border: "1px solid #374151", borderRadius: 6, outline: "none",
+            }}
+          />
+          <input
+            type="password"
+            value={password} onChange={e => setPassword(e.target.value)}
+            placeholder="密码"
+            style={{
+              padding: "8px 12px", fontSize: "0.9rem",
+              color: "#e5e7eb", background: "#111827",
+              border: "1px solid #374151", borderRadius: 6, outline: "none",
+            }}
+          />
+          <button
+            type="submit" disabled={loading}
+            style={{
+              padding: "8px 0", fontSize: "0.9rem",
+              color: "#fff", background: "#3b82f6", border: "none", borderRadius: 6,
+              cursor: "pointer", opacity: loading ? 0.6 : 1,
+            }}
+          >
+            {loading ? "登录中..." : "登录"}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

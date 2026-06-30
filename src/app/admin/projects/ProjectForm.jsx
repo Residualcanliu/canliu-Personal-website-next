@@ -3,102 +3,104 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function ProjectForm({ initial }) {
+export default function ProjectForm({ initial = null }) {
   const router = useRouter();
   const isEdit = !!initial;
   const [title, setTitle] = useState(initial?.title || "");
   const [content, setContent] = useState(initial?.content || "");
   const [tags, setTags] = useState(initial?.tags || "");
   const [link, setLink] = useState(initial?.link || "");
-  const [published, setPublished] = useState(initial ? !!initial.published : false);
+  const [published, setPublished] = useState(!!initial?.published);
   const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async (e) => {
+  async function handleSave(e) {
     e.preventDefault();
-    if (!title.trim()) return alert("请输入项目标题");
+    if (!title.trim()) return alert("标题不能为空");
     setSaving(true);
+    const body = { title, content, tags, link, published };
+    const url = isEdit ? `/api/admin/projects/${initial.id}` : "/api/admin/projects";
+    const method = isEdit ? "PUT" : "POST";
     try {
-      const url = isEdit ? `/api/admin/projects/${initial.id}` : "/api/admin/projects";
-      const method = isEdit ? "PUT" : "POST";
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), content, tags: tags.trim(), link: link.trim(), published }),
+        body: JSON.stringify(body),
       });
-      if (res.status === 401) { router.push("/admin/login"); return; }
+      if (res.status === 401) return router.push("/admin/login");
       if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || "保存失败");
+        const err = await res.json();
+        alert("保存失败：" + (err.error || res.status));
         return;
       }
       router.push("/admin/projects");
-    } catch (err) {
-      alert("网络错误: " + err.message);
+    } catch {
+      alert("网络错误");
     } finally {
       setSaving(false);
     }
+  }
+
+  const fieldStyle = { display: "flex", flexDirection: "column", gap: 4 };
+  const labelStyle = { fontSize: "0.8rem", color: "rgba(255,255,255,0.45)", fontWeight: 500 };
+  const inputStyle = {
+    padding: "9px 12px", fontSize: "0.9rem", color: "#fff",
+    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: 6, outline: "none",
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 700, margin: "0 auto" }}>
-      <div style={{ marginBottom: 16 }}>
-        <label style={lbl}>标题 *</label>
-        <input value={title} onChange={e => setTitle(e.target.value)}
-          style={inp} placeholder="项目名称" />
+    <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={fieldStyle}>
+        <label style={labelStyle}>标题 *</label>
+        <input style={inputStyle} value={title}
+          onChange={e => setTitle(e.target.value)} placeholder="项目名称" required />
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <label style={lbl}>标签（逗号分隔，如：WebGL 2, Next.js, GLSL）</label>
-        <input value={tags} onChange={e => setTags(e.target.value)}
-          style={inp} placeholder="WebGL 2, Next.js, GLSL" />
+      <div style={fieldStyle}>
+        <label style={labelStyle}>标签（英文逗号分隔，如：WebGL 2, Next.js, 光线追踪）</label>
+        <input style={inputStyle} value={tags}
+          onChange={e => setTags(e.target.value)} placeholder="WebGL 2, Next.js, 光线追踪" />
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <label style={lbl}>链接</label>
-        <input value={link} onChange={e => setLink(e.target.value)}
-          style={inp} placeholder="https://github.com/..." />
+      <div style={fieldStyle}>
+        <label style={labelStyle}>链接</label>
+        <input style={inputStyle} value={link}
+          onChange={e => setLink(e.target.value)} placeholder="https://github.com/..." />
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <label style={lbl}>内容（Markdown）</label>
-        <textarea value={content} onChange={e => setContent(e.target.value)}
-          rows={14}
-          style={{ ...inp, fontFamily: "Consolas, Monaco, \"Courier New\", monospace", resize: "vertical" }}
-          placeholder={"## 项目介绍\n\n这里写详细介绍...\n\n### 技术栈\n- xxx\n- yyy"} />
+      <div style={fieldStyle}>
+        <label style={labelStyle}>正文（Markdown）</label>
+        <textarea
+          style={{
+            ...inputStyle, minHeight: 280, resize: "vertical",
+            fontFamily: '"SF Mono","Fira Code",monospace', fontSize: "0.85rem", lineHeight: 1.7,
+          }}
+          value={content}
+          onChange={e => setContent(e.target.value)}
+          placeholder="## 项目介绍&#10;&#10;这里写详细介绍...&#10;&#10;### 技术栈&#10;- xxx&#10;- yyy"
+          rows={16}
+        />
       </div>
 
-      <div style={{ marginBottom: 20 }}>
-        <label style={{ ...lbl, display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)}
-            style={{ width: 16, height: 16 }} />
-          发布
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <input type="checkbox" id="pub" checked={published}
+          onChange={e => setPublished(e.target.checked)}
+          style={{ width: 18, height: 18, cursor: "pointer" }} />
+        <label htmlFor="pub" style={{ fontSize: "0.88rem", cursor: "pointer" }}>
+          发布（勾选后公开可见）
         </label>
       </div>
 
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
         <button type="submit" disabled={saving}
           style={{
-            padding: "8px 24px", fontSize: "0.9rem",
-            color: "#fff", background: "#3b82f6", border: "none", borderRadius: 6, cursor: "pointer",
-            opacity: saving ? 0.6 : 1,
+            padding: "10px 28px", fontSize: "0.9rem", color: "#fff",
+            background: "rgba(100,180,255,0.3)", border: "1px solid rgba(100,180,255,0.4)",
+            borderRadius: 7, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.5 : 1,
           }}>
-          {saving ? "保存中..." : isEdit ? "更新" : "创建"}
-        </button>
-        <button type="button" onClick={() => router.push("/admin/projects")}
-          style={{
-            padding: "8px 20px", fontSize: "0.9rem",
-            color: "#9ca3af", background: "#1f2937", border: "1px solid #374151", borderRadius: 6, cursor: "pointer",
-          }}>
-          取消
+          {saving ? "保存中..." : isEdit ? "更新项目" : "创建项目"}
         </button>
       </div>
     </form>
   );
 }
-
-const lbl = { display: "block", fontSize: "0.85rem", color: "#9ca3af", marginBottom: 6 };
-const inp = {
-  width: "100%", padding: "8px 12px", fontSize: "0.9rem",
-  color: "#e5e7eb", background: "#111827",
-  border: "1px solid #374151", borderRadius: 6, outline: "none",
-};
