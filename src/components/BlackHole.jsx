@@ -1,394 +1,561 @@
 "use client";
 
 import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
-import * as THREE from "three";
+
+// ══════════════════════════════════════════════════════════════════════
+//  Presets — ported from ghostty-blackhole DEMO_TOUR
+// ══════════════════════════════════════════════════════════════════════
+const PRESETS = [
+  { name:'Inferno — 烈焰', temp:5500, incl:1.50, roll:2.7, inner:1.8, outer:8.0, opac:0.90, dopp:0.60, beam:2.5, gain:2.2, contr:1.6, wind:7.0, speed:5.0, expo:1.40, star:0.0 },
+  { name:'Gargantua — 巨浪', temp:4500, incl:1.52, roll:2.7, inner:2.2, outer:7.0, opac:0.85, dopp:0.35, beam:2.0, gain:1.4, contr:0.5, wind:7.0, speed:5.0, expo:1.20, star:0.0 },
+  { name:'M87* Donut — 甜甜圈', temp:3800, incl:0.55, roll:2.7, inner:2.2, outer:6.0, opac:0.45, dopp:0.90, beam:3.5, gain:1.6, contr:0.4, wind:3.0, speed:2.5, expo:1.10, star:0.0 },
+  { name:'Face-on Ember — 余烬', temp:6500, incl:0.30, roll:2.7, inner:3.0, outer:10.0, opac:0.50, dopp:0.80, beam:2.5, gain:1.0, contr:1.1, wind:7.0, speed:5.0, expo:1.00, star:0.0 },
+  { name:'Quasar — 类星体', temp:15000, incl:1.30, roll:2.7, inner:3.0, outer:14.0, opac:0.35, dopp:1.00, beam:4.0, gain:1.2, contr:1.3, wind:8.0, speed:5.0, expo:0.80, star:0.0 },
+  { name:'Blazar — 耀变体', temp:18000, incl:1.05, roll:2.7, inner:3.0, outer:16.0, opac:0.30, dopp:1.00, beam:5.0, gain:1.0, contr:1.5, wind:9.0, speed:6.0, expo:0.75, star:0.0 },
+  { name:'Pure Lens — 纯透镜', temp:5500, incl:1.50, roll:2.7, inner:1.8, outer:8.0, opac:0.00, dopp:1.00, beam:2.5, gain:0.0, contr:1.6, wind:7.0, speed:5.0, expo:1.00, star:0.6 },
+  { name:'Inferno (复现)', temp:5500, incl:1.50, roll:2.7, inner:1.8, outer:8.0, opac:0.90, dopp:0.60, beam:2.5, gain:2.2, contr:1.6, wind:7.0, speed:5.0, expo:1.40, star:0.0 },
+];
+
+// ══════════════════════════════════════════════════════════════════════
+//  Vertex Shader — fullscreen quad
+// ══════════════════════════════════════════════════════════════════════
+const VS = `#version 300 es
+in vec2 a_pos;
+out vec2 v_uv;
+void main() {
+  v_uv = a_pos * 0.5 + 0.5;
+  gl_Position = vec4(a_pos, 0.0, 1.0);
+}`;
+
+// ══════════════════════════════════════════════════════════════════════
+//  Fragment Shader — ghostty-blackhole.glsl → WebGL 2
+//  (N_STEPS placeholder replaced at compile time per quality tier)
+// ══════════════════════════════════════════════════════════════════════
+const FS_TEMPLATE = `#version 300 es
+precision highp float;
+
+uniform vec2  u_resolution;
+uniform float u_time;
+uniform vec4  u_date;
+uniform sampler2D u_background;
+uniform vec4  u_cursorColor;
+uniform vec4  u_prevCursorColor;
+uniform float u_timeCursorChange;
+
+uniform float u_intensity;
+uniform vec2  u_center;
+uniform float u_sizeDial;
+uniform float u_diskTemp;
+uniform float u_diskIncl;
+uniform float u_diskRoll;
+uniform float u_diskInner;
+uniform float u_diskOuter;
+uniform float u_diskOpac;
+uniform float u_diskDopp;
+uniform float u_diskBeam;
+uniform float u_diskGain;
+uniform float u_diskContrast;
+uniform float u_diskWind;
+uniform float u_diskSpeed;
+uniform float u_exposure;
+uniform float u_starGain;
+uniform float u_driftSpeed;
+
+out vec4 fragColor;
+
+#define HOLE_RADIUS   0.0200
+#define LENS_DEPTH    13.0000
+#define N_STEPS       __STEPS__
+#define MODE_WEB      3
+#define SIZE_MODE     MODE_WEB
+
+const ivec3 TOKEN_BASE_HI = ivec3(0xF, 0xB, 0x0);
+
+float tokenFromBytes(ivec3 v) {
+    ivec3 lo = v & 0xF;
+    if ((v >> 4) != TOKEN_BASE_HI || lo.r != (lo.g ^ lo.b ^ 0x5)) return -1.0;
+    int fill = (lo.g << 4) | lo.b;
+    return fill > 250 ? -1.0 : float(fill) / 250.0;
+}
+
+float tokenDecode(vec3 cc) {
+    vec3 c = clamp(cc, 0.0, 1.0);
+    float lvl = tokenFromBytes(ivec3(int(floor(c.r * 255.0 + 0.5)), int(floor(c.g * 255.0 + 0.5)), int(floor(c.b * 255.0 + 0.5))));
+    if (lvl >= 0.0) return lvl;
+    return -1.0;
+}
+
+float tokenLevel() {
+    float cur = tokenDecode(u_cursorColor.rgb);
+    return cur;
+}
+
+#define B_CRIT 2.5980762
+
+float hash21(vec2 p) {
+    p = fract(p * vec2(234.34, 435.345));
+    p += dot(p, p + 34.23);
+    return fract(p.x * p.y);
+}
+
+float vnoiseWrapY(vec2 p, float perY) {
+    vec2 i = floor(p), f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float y0 = mod(i.y, perY), y1 = mod(i.y + 1.0, perY);
+    return mix(mix(hash21(vec2(i.x, y0)), hash21(vec2(i.x + 1.0, y0)), f.x),
+               mix(hash21(vec2(i.x, y1)), hash21(vec2(i.x + 1.0, y1)), f.x),
+               f.y);
+}
+
+vec2 mirrorUV(vec2 u) { return 1.0 - abs(1.0 - mod(u, 2.0)); }
+
+vec2 rot(vec2 v, float a) {
+    float c = cos(a), s = sin(a);
+    return vec2(c * v.x - s * v.y, s * v.x + c * v.y);
+}
+
+vec2 lissa(float t) {
+    return vec2(0.75 * sin(t * 0.37) + 0.25 * sin(t * 0.83 + 1.0),
+                0.70 * sin(t * 0.54 + 2.1) + 0.30 * sin(t * 1.07));
+}
+
+vec3 blackbody(float T) {
+    float t = clamp(T, 1500.0, 40000.0) / 100.0;
+    float r = t <= 66.0 ? 1.0 : clamp(1.292936 * pow(t - 60.0, -0.1332047), 0.0, 1.0);
+    float g = t <= 66.0 ? clamp(0.3900816 * log(t) - 0.6318414, 0.0, 1.0)
+                        : clamp(1.1298909 * pow(t - 60.0, -0.0755148), 0.0, 1.0);
+    float b = t >= 66.0 ? 1.0 : (t <= 19.0 ? 0.0
+                                 : clamp(0.5432068 * log(t - 10.0) - 1.1962540, 0.0, 1.0));
+    return vec3(r, g, b);
+}
+
+vec3 stars(vec3 d) {
+    float t = u_time;
+    vec2 sph = vec2(atan(d.x, -d.z), asin(clamp(d.y, -1.0, 1.0)));
+    vec2 g   = sph * 40.0;
+    vec2 id  = floor(g);
+    float h  = hash21(id);
+    if (h < 0.92) return vec3(0.0);
+    vec2 f   = fract(g) - 0.5;
+    vec2 off = (vec2(hash21(id + 17.3), hash21(id + 31.7)) - 0.5) * 0.7;
+    float spark = smoothstep(0.10, 0.0, length(f - off));
+    float tw    = 0.7 + 0.3 * sin(t * (0.5 + 2.0 * hash21(id + 5.1)) + 40.0 * h);
+    vec3 tint   = mix(vec3(1.0, 0.82, 0.60), vec3(0.75, 0.85, 1.0), hash21(id + 2.9));
+    return tint * spark * tw * ((h - 0.92) / 0.08);
+}
+
+struct DiskLook {
+    float temp, incl, roll, inner, outer, opac, dopp, beam,
+          gain, contr, wind, speed, expo, star;
+};
+
+void main() {
+    vec2 fragCoord = gl_FragCoord.xy;
+    vec2 res    = u_resolution;
+    vec2 uv     = fragCoord / res;
+    float aspect = res.x / res.y;
+    float yUp = 1.0 - uv.y;
+    float t = u_time * u_driftSpeed;
+
+    DiskLook L = DiskLook(
+        u_diskTemp, u_diskIncl, u_diskRoll, u_diskInner, u_diskOuter,
+        u_diskOpac, u_diskDopp, u_diskBeam, u_diskGain, u_diskContrast,
+        u_diskWind, u_diskSpeed, u_exposure, u_starGain);
+
+    float rin  = max(L.inner, 1.6);
+    float rout = max(L.outer, rin + 0.5);
+
+    float g = u_intensity;
+    if (g <= 0.0) {
+        fragColor = texture(u_background, uv);
+        return;
+    }
+    float I = mix(0.10, 1.0, g);
+    float rhMin = sqrt(0.01 * aspect / 3.1415927);
+    float rhMax = sqrt(0.50 * aspect / 3.1415927);
+    float rhT = mix(rhMin, rhMax, g) * (HOLE_RADIUS / 0.08) * u_sizeDial;
+    float sz = rhT / max(HOLE_RADIUS, 1e-4);
+
+    float marg = min(rhT * mix(1.45, 0.90, g), 0.45);
+    float xPad = marg / aspect;
+    vec2 center = clamp(u_center,
+        vec2(min(xPad, 0.5), marg),
+        vec2(max(0.5, 1.0 - xPad), 1.0 - marg));
+
+    float vis = smoothstep(0.0, 0.10, I);
+    if (vis <= 0.0) {
+        fragColor = texture(u_background, uv);
+        return;
+    }
+    float rh = HOLE_RADIUS * sz;
+
+    float dil = mix(1.0, 0.20, I);
+
+    float WORK_AREA = 0.0;
+    float shield = vis * smoothstep(WORK_AREA, WORK_AREA + 0.18, yUp);
+
+    vec2  p    = (uv - center) * vec2(aspect, 1.0);
+    float plen = length(p);
+
+    float W  = B_CRIT / max(rh, 1e-4);
+    vec2  pr = rot(vec2(p.x, -p.y), L.roll) * W;
+    float b  = length(pr);
+
+    float window = exp(-pow(plen / (7.0 * rh), 2.0));
+
+    float bmax = rout + 3.0;
+    float Z0   = max(14.0, rout + 5.0);
+
+    // ── far field: analytic weak deflection ──
+    if (b >= bmax) {
+        float u    = Z0 * inversesqrt(Z0 * Z0 + b * b);
+        float defl = (2.0 / (W * W)) / max(plen, 1e-4)
+                   * (1.29 * u + 0.07) * max(LENS_DEPTH - 2.14 * u + 0.75, 0.0)
+                   * window * shield;
+        vec2  dir  = p / max(plen, 1e-5);
+        vec3  term;
+        float ab = 0.035 * smoothstep(1.0, 2.0, b / bmax);
+        for (int i = 0; i < 3; i++) {
+            float k   = 1.0 + (float(i) - 1.0) * ab;
+            vec2  sp  = p - dir * defl * k;
+            vec2  suv = mirrorUV(center + sp / vec2(aspect, 1.0));
+            term[i]   = texture(u_background, suv)[i];
+        }
+        vec3 d = normalize(vec3(-(pr / b) * (2.0 / b), -1.0));
+        fragColor = vec4(term + stars(d) * L.star * window * shield, 1.0);
+        return;
+    }
+
+    // ── near field: geodesic integration ──
+    vec3  x  = vec3(pr, Z0);
+    vec3  v  = vec3(0.0, 0.0, -1.0);
+    float h2 = dot(pr, pr);
+
+    float ci = cos(L.incl), si = sin(L.incl);
+    vec3  n  = vec3(0.0, si, ci);
+    vec3  e2 = vec3(0.0, ci, -si);
+    float sdir = L.speed < 0.0 ? -1.0 : 1.0;
+    float spd  = abs(L.speed);
+
+    vec3  emitc = vec3(0.0);
+    float trans = 1.0;
+    bool  captured = false;
+    float sPrev = dot(x, n);
+    vec3  xPrev = x;
+
+    for (int i = 0; i < N_STEPS; i++) {
+        float r2 = dot(x, x);
+        if (r2 < 1.0) { captured = true; break; }
+        if (x.z < -Z0 && v.z < 0.0) break;
+        if (r2 > 4.0 * Z0 * Z0) break;
+        float r  = sqrt(r2);
+        float dt = clamp(0.16 * r, 0.03, 1.5);
+        vec3 a = -1.5 * h2 * x / (r2 * r2 * r);
+        v += a * (0.5 * dt);
+        x += v * dt;
+        r2 = dot(x, x);
+        r  = sqrt(r2);
+        a  = -1.5 * h2 * x / (r2 * r2 * r);
+        v += a * (0.5 * dt);
+
+        float s = dot(x, n);
+        if (s * sPrev < 0.0 && trans > 0.02) {
+            float tc = sPrev / (sPrev - s);
+            vec3  xc = mix(xPrev, x, tc);
+            float rc = length(xc);
+            if (rc > rin && rc < rout) {
+                float band = smoothstep(rin, rin * 1.25, rc)
+                           * (1.0 - smoothstep(rout * 0.70, rout, rc));
+
+                float phi   = atan(dot(xc, e2), xc.x);
+                float turns = phi / 6.2831853;
+                float kep   = pow(rin / rc, 1.5);
+                float gloc  = sqrt(max(1.0 - 1.5 / rc, 0.02));
+                float swirl = rc * L.wind * 0.12 - t * kep * spd * gloc * dil * sdir;
+                float streaks = vnoiseWrapY(vec2(rc * 2.8, turns * 19.0 + swirl * 3.0), 19.0) * 0.65 +
+                                vnoiseWrapY(vec2(rc * 1.0, turns * 9.0  + swirl * 1.5 + 7.0), 9.0) * 0.35;
+                streaks = 0.35 + L.contr * streaks * streaks;
+
+                vec3  gasdir = normalize(cross(n, xc)) * sdir;
+                float beta   = clamp(inversesqrt(max(2.0 * (rc - 1.0), 0.2)), 0.0, 0.99);
+                float g_dopp = gloc / max(1.0 + beta * dot(gasdir, normalize(v)), 0.05);
+                g_dopp = mix(1.0, g_dopp, L.dopp);
+
+                float xpr   = max(1.0 - sqrt(rin / rc), 0.0);
+                float tprof = pow(rin / rc, 0.75) * pow(xpr, 0.25) / 0.488;
+                vec3  cbb   = blackbody(L.temp * tprof * g_dopp);
+                float boost = pow(g_dopp, L.beam);
+
+                float density = band * streaks;
+                emitc += trans * cbb * (L.gain * 2.2 * density * tprof * tprof * boost);
+                trans *= 1.0 - clamp(L.opac * density, 0.0, 1.0);
+            }
+        }
+        sPrev = s;
+        xPrev = x;
+    }
+    if (!captured && dot(x, x) < 4.0) captured = true;
+
+    vec3 bg = vec3(0.0);
+    if (!captured) {
+        vec3 d = normalize(v);
+        bg += stars(d) * L.star * window * shield;
+        if (d.z < -0.05) {
+            float tpl = (-LENS_DEPTH - x.z) / d.z;
+            vec3  hp  = x + d * tpl;
+            vec2  q   = rot(hp.xy, -L.roll) / W;
+            vec2  sp  = vec2(q.x, -q.y);
+            vec2  suv = mirrorUV(center + (p + (sp - p) * window * shield) / vec2(aspect, 1.0));
+            float toward = smoothstep(0.05, 0.35, -d.z);
+            bg += texture(u_background, suv).rgb * toward;
+        }
+    }
+
+    vec3 col = bg * trans + (vec3(1.0) - exp(-emitc * L.expo));
+    fragColor = vec4(col, 1.0);
+}`;
 
 const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
   const canvasRef = useRef(null);
-  const selfRef = useRef({ speed: 50, attract: 0.45, bhMode: 1, forceRT: false });
+  const selfRef = useRef({
+    speed: 50, attract: 0.20, preset: 0, sizeDial: 0.7, customParams: null
+  });
 
   useImperativeHandle(ref, () => selfRef.current, []);
 
   useEffect(() => {
     const c = canvasRef.current;
-    // 手机端：不初始化 Three.js，仅显示深色背景
-    if (innerWidth < 640) {
-      c.style.background = "radial-gradient(ellipse at center, #0d0d1a 0%, #050510 100%)";
-      c.width = innerWidth; c.height = innerHeight;
-      return () => {};
-    }
     let h = document.getElementById("hint");
     if (!h) { h = document.createElement("div"); h.id = "hint"; h.className = "hint"; document.body.appendChild(h); }
 
-    // 性能分档：根据屏幕宽度自动选档（0=low 1=medium 2=high）
+    // 性能分档
     const q = innerWidth < 640 ? 0 : innerWidth < 1024 ? 1 : 2;
     const maxPR = q === 0 ? 1 : q === 1 ? 1.5 : 2;
-    const TRES = q === 0 ? 512 : q === 1 ? 1024 : 2048;
-    const TRESH = q === 0 ? 128 : q === 1 ? 256 : 512;
+    const steps = q === 0 ? 0 : q === 1 ? 32 : 48;
 
-    const R = new THREE.WebGLRenderer({ canvas: c, antialias: true, alpha: false });
-    R.setPixelRatio(Math.min(devicePixelRatio, maxPR));
-    R.setSize(innerWidth, innerHeight);
-    const gl = R.getContext();
-    const _cs = gl.compileShader.bind(gl);
-    gl.compileShader = function (s) {
-      _cs(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-        h.innerHTML = "⚠ " + gl.getShaderInfoLog(s).substring(0, 120);
+    // 手机端：不初始化 WebGL，仅显示深色背景
+    if (q === 0) {
+      c.style.background = "radial-gradient(ellipse at center, #0d0d12 0%, #020206 100%)";
+      c.width = innerWidth; c.height = innerHeight;
+      onReady?.();
+      return () => {};
+    }
+
+    // ── WebGL 2 初始化 ──
+    const gl = c.getContext("webgl2", { antialias: true, alpha: false });
+    if (!gl) {
+      h.innerHTML = "浏览器不支持 WebGL 2.0";
+      h.style.color = "rgba(255,120,120,0.9)";
+      onReady?.();
+      return () => {};
+    }
+
+    // 注入 N_STEPS
+    const FS = FS_TEMPLATE.replace("__STEPS__", String(steps));
+
+    // 编译 shader
+    function compileShader(type, source) {
+      const sh = gl.createShader(type);
+      gl.shaderSource(sh, source);
+      gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+        const err = gl.getShaderInfoLog(sh);
+        h.innerHTML = "⚠ " + err.substring(0, 120);
         h.style.color = "rgba(255,120,120,0.9)";
       }
-    };
+      return sh;
+    }
 
-    const S = new THREE.Scene();
-    const K = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
-    K.position.z = 1;
-    const RE = new THREE.Vector2(innerWidth, innerHeight);
+    const vs = compileShader(gl.VERTEX_SHADER, VS);
+    const fs = compileShader(gl.FRAGMENT_SHADER, FS);
+    const program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      h.innerHTML = "⚠ Shader link error";
+      h.style.color = "rgba(255,120,120,0.9)";
+    }
 
-    // Canvas texture — shared draw function so clock updates
-    const tc = document.createElement("canvas");
-    tc.width = TRES;
-    tc.height = TRESH;
-    const tx = tc.getContext("2d");
-    tx.textAlign = "center";
-    tx.textBaseline = "middle";
-    tx.shadowColor = "rgba(180,210,255,0.5)";
-    const te = new THREE.CanvasTexture(tc);
-    te.minFilter = THREE.LinearFilter;
-    te.magFilter = THREE.LinearFilter;
+    // 全屏四边形
+    const quad = new Float32Array([-1,-1, 1,-1, -1,1, 1,1]);
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(program, "a_pos");
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
-    function drawTexture() {
-      tx.clearRect(0, 0, tc.width, tc.height);
-      const cx = tc.width / 2;
-      const scale = TRES / 2048; // 缩放系数，用于字体/位置
-      // Clock
+    // Uniform locations
+    const UL = {};
+    for (const name of [
+      "u_resolution","u_time","u_date","u_background",
+      "u_cursorColor","u_prevCursorColor","u_timeCursorChange",
+      "u_intensity","u_center","u_sizeDial",
+      "u_diskTemp","u_diskIncl","u_diskRoll","u_diskInner","u_diskOuter",
+      "u_diskOpac","u_diskDopp","u_diskBeam","u_diskGain","u_diskContrast",
+      "u_diskWind","u_diskSpeed","u_exposure","u_starGain","u_driftSpeed"
+    ]) {
+      UL[name] = gl.getUniformLocation(program, name);
+    }
+
+    // ── 星空背景纹理（含星座）──
+    function createStarfieldTexture() {
+      const size = 1024;
+      const bgc = document.createElement("canvas");
+      bgc.width = size; bgc.height = size;
+      const ctx = bgc.getContext("2d");
+
+      // 深空渐变
+      const grad = ctx.createRadialGradient(size*0.3, size*0.4, 0, size*0.5, size*0.5, size*0.8);
+      grad.addColorStop(0, "#0d0d12");
+      grad.addColorStop(0.5, "#08080c");
+      grad.addColorStop(1, "#020206");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+
+      // 星云薄雾
+      for (let i = 0; i < 5; i++) {
+        const nx = Math.random() * size;
+        const ny = Math.random() * size;
+        const nr = 100 + Math.random() * 300;
+        const ng = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr);
+        const hue = Math.random() < 0.5 ? 260 : 290;
+        ng.addColorStop(0, `hsla(${hue}, 60%, 30%, 0.08)`);
+        ng.addColorStop(0.5, `hsla(${hue}, 50%, 15%, 0.03)`);
+        ng.addColorStop(1, "transparent");
+        ctx.fillStyle = ng;
+        ctx.fillRect(0, 0, size, size);
+      }
+
+      // 星点
+      const starCount = 2000;
+      for (let i = 0; i < starCount; i++) {
+        const sx = Math.random() * size;
+        const sy = Math.random() * size;
+        const sr = Math.random() * 2.2;
+        const brightness = 0.2 + Math.random() * 0.8;
+        const hue = Math.random() < 0.1 ? 30 + Math.random() * 30
+                  : Math.random() < 0.3 ? 200 + Math.random() * 40 : 0;
+        const sat = hue > 0 ? 40 : 0;
+        ctx.beginPath();
+        ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue}, ${sat}%, ${70 + brightness * 30}%, ${brightness})`;
+        ctx.fill();
+      }
+
+      // 亮星辉光
+      for (let i = 0; i < 30; i++) {
+        const sx = Math.random() * size;
+        const sy = Math.random() * size;
+        const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 8 + Math.random() * 15);
+        glow.addColorStop(0, "rgba(255,255,255,0.9)");
+        glow.addColorStop(0.1, "rgba(200,220,255,0.6)");
+        glow.addColorStop(0.4, "rgba(100,150,255,0.15)");
+        glow.addColorStop(1, "transparent");
+        ctx.fillStyle = glow;
+        ctx.fillRect(sx-20, sy-20, 40, 40);
+      }
+
+      // ── 星座叠加 ──
+      const stars = [
+        // Leo (scale 0.6)
+        [0.150,0.724],[0.171,0.740],[0.159,0.754],[0.203,0.783],[0.195,0.794],[0.202,0.816],[0.215,0.816],[0.220,0.782],[0.234,0.768],
+        // Orion (scale 0.6)
+        [0.734,0.708],[0.740,0.735],[0.747,0.737],[0.751,0.741],[0.759,0.732],[0.769,0.713],[0.758,0.765],[0.747,0.778],[0.725,0.769],[0.718,0.777],[0.708,0.795],[0.719,0.816],[0.796,0.767],[0.795,0.776],[0.795,0.762],[0.793,0.752],[0.786,0.747],
+        // Lyra (scale 0.6)
+        [0.144,0.152],[0.169,0.170],[0.124,0.204],[0.149,0.224],[0.163,0.246],
+        // Cygnus (scale 0.6)
+        [0.849,0.146],[0.816,0.170],[0.791,0.184],[0.775,0.198],[0.816,0.204],[0.778,0.160],[0.753,0.146],[0.821,0.223],[0.829,0.228],
+      ];
+      // 星座连线
+      const lines = [
+        [2,3],[3,4],[4,5],[5,6],[3,7],[7,8],[0,2],[0,1],[1,8], // Leo
+        [8+9,6+9],[6+9,7+9],[8+9,0+9],[6+9,4+9],[4+9,5+9],[0+9,5+9],[1+9,2+9],[2+9,3+9],[2+9,6+9],[8+9,9+9],[9+9,10+9],[10+9,11+9],[6+9,12+9],[12+9,13+9],[12+9,14+9],[14+9,15+9],[15+9,16+9], // Orion (offset 9 = 9 Leo stars)
+        [0+26,1+26],[1+26,3+26],[3+26,2+26],[2+26,0+26],[4+26,3+26],[4+26,2+26],[4+26,0+26], // Lyra (offset 26 = 9 Leo + 17 Orion)
+        [7+31,2+31],[2+31,1+31],[1+31,0+31],[2+31,5+31],[5+31,6+31],[2+31,4+31],[4+31,3+31], // Cygnus (offset 31 = 9+17+5)
+      ];
+      // Glow pass
+      ctx.shadowColor = "rgba(160,200,255,0.5)";
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = "rgba(180,210,255,0.18)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      for (const [a, b] of lines) {
+        ctx.moveTo(stars[a][0] * size, stars[a][1] * size);
+        ctx.lineTo(stars[b][0] * size, stars[b][1] * size);
+      }
+      ctx.stroke();
+      // Main pass
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(220,240,255,0.45)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (const [a, b] of lines) {
+        ctx.moveTo(stars[a][0] * size, stars[a][1] * size);
+        ctx.lineTo(stars[b][0] * size, stars[b][1] * size);
+      }
+      ctx.stroke();
+      // 星座星点
+      for (const [sx, sy] of stars) {
+        ctx.beginPath();
+        ctx.arc(sx * size, sy * size, 3, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(220,240,255,0.75)";
+        ctx.fill();
+      }
+
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bgc);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      return tex;
+    }
+
+    const bgTexture = createStarfieldTexture();
+
+    // ── 文字叠加层（DOM）──
+    let overlayDiv = document.getElementById("welcome-overlay");
+    if (!overlayDiv) {
+      overlayDiv = document.createElement("div");
+      overlayDiv.id = "welcome-overlay";
+      overlayDiv.style.cssText = "position:fixed;top:42%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:30;pointer-events:none;font-family:\"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      document.body.appendChild(overlayDiv);
+    }
+    function updateOverlay() {
       const n = new Date();
       const pad = (v) => String(v).padStart(2, "0");
       const ts = n.getFullYear() + "-" + pad(n.getMonth() + 1) + "-" + pad(n.getDate()) + " " +
         pad(n.getHours()) + ":" + pad(n.getMinutes()) + ":" + pad(n.getSeconds());
-      tx.shadowBlur = 6 * scale;
-      tx.font = "400 " + Math.round(20 * scale) + "px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      tx.fillStyle = "rgba(255,255,255,0.5)";
-      tx.fillText(ts, cx, 90 * scale);
-      // Hint
-      tx.font = "400 " + Math.round(20 * scale) + "px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      tx.shadowBlur = 4 * scale;
-      tx.fillStyle = "rgba(255,255,255,0.22)";
-      tx.fillText("点击星图或右上角查看各个栏目", cx, 195 * scale);
-      // Main title
-      tx.font = "600 " + Math.round(80 * scale) + "px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      tx.shadowBlur = 30 * scale;
-      tx.fillStyle = "rgba(255,255,255,0.95)";
-      tx.fillText("欢迎来到我的频道", cx, 256 * scale);
-      te.needsUpdate = true;
+      overlayDiv.innerHTML =
+        '<div style="font-size:0.9rem;color:rgba(255,255,255,0.55);margin-bottom:8px;text-shadow:0 0 14px rgba(150,190,240,0.35)">' + ts + '</div>' +
+        '<div style="font-size:0.85rem;color:rgba(255,255,255,0.3);margin-bottom:55px;text-shadow:0 0 10px rgba(150,190,240,0.25)">点击星图或右上角查看各个栏目</div>' +
+        '<div style="font-size:2.8rem;font-weight:600;color:rgba(255,255,255,0.92);text-shadow:0 0 50px rgba(140,190,250,0.55),0 0 100px rgba(120,160,240,0.3)">欢迎来到我的频道</div>';
     }
-    drawTexture();
-    let clockTimer = setInterval(drawTexture, 1000);
+    updateOverlay();
+    let clockTimer = setInterval(updateOverlay, 1000);
 
-    // 标签页隐藏时暂停渲染，节省资源
+    // 标签页隐藏暂停
     let animId, paused = false;
     const onVisibility = () => {
       if (document.hidden) {
         paused = true;
         cancelAnimationFrame(animId);
-        clearInterval(clockTimer);
-        clockTimer = null;
+        if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
       } else if (paused) {
         paused = false;
-        animId = requestAnimationFrame(A);
+        animId = requestAnimationFrame(render);
         clockTimer = setInterval(drawTexture, 1000);
       }
     };
     document.addEventListener("visibilitychange", onVisibility);
 
-    const U = {
-      uRes: { value: RE },
-      uTime: { value: 0 },
-      uBH: { value: new THREE.Vector2(innerWidth * 0.5, innerHeight * 0.78) },
-      uRadius: { value: 0 },
-      uTex: { value: te },
-      uMouse: { value: new THREE.Vector2(0.5, 0.5) },
-      uZoom: { value: 0 },
-      uQuality: { value: q },
-      uBHMode: { value: 1 }, // 0=classic 1=ray-traced (default)
-    };
-
-    const VS = "varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}";
-
-    // ===== FRAGMENT SHADER (exact copy from v1.2) =====
-    const FS = [
-      "varying vec2 vUv;uniform vec2 uRes,uBH,uMouse;uniform float uTime,uRadius,uZoom,uQuality,uBHMode;uniform sampler2D uTex;",
-      "float h23(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}",
-      "float h31(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}",
-      "float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h23(i),h23(i+vec2(1,0)),f.x),mix(h23(i+vec2(0,1)),h23(i+vec2(1,1)),f.x),f.y);}",
-      "float fbm(vec2 p){float v=0.,a=.5;vec2 s=p;for(int i=0;i<4;i++){v+=a*noise(s);s*=2.1;a*=.5;}return v;}",
-      "vec3 blackbody(float T){float t=clamp(T,1500.,40000.)/100.;float r=t<=66.?1.:clamp(1.292936*pow(t-60.,-0.1332047),0.,1.);float g=t<=66.?clamp(.3900816*log(t)-.6318414,0.,1.):clamp(1.1298909*pow(t-60.,-.0755148),0.,1.);float b=t>=66.?1.:(t<=19.?.0:clamp(.5432068*log(t-10.)-1.196254,0.,1.));return vec3(r,g,b);}",
-      "const float PI=3.14159265;const float SQRT3=1.7320508;",
-      "vec3 renderBackground(vec2 uv){vec3 col=vec3(0);",
-      "float nd=noise(uv*5.+1.3)*.5+noise(uv*2.8-2.1)*.5;",
-      "col+=mix(vec3(.008,.006,.012),vec3(.015,.01,.02),nd);",
-      "float gas=fbm(uv*1.6+vec2(.3,1.1));",
-      "float dust=fbm(uv*1.9+vec2(2.1,.5));",
-      "float emi=fbm(uv*1.3+vec2(1.5,2.3));",
-      "col+=vec3(.012,.004,.003)*gas;",
-      "col+=vec3(.004,.008,.01)*dust;",
-      "col+=vec3(.006,.003,.014)*emi;",
-      "return col;}",
-      "vec3 renderStars(vec2 uv,float time){vec3 col=vec3(0);",
-      "for(int L=0;L<7;L++){if(uQuality<1.&&L>=2)continue;if(uQuality<2.&&L>=4)continue;float sc=pow(2.1,float(L));vec2 suv=uv*sc*65.;vec2 ce=floor(suv),lo=fract(suv)-.5;",
-      "float hh=h23(ce+float(L)*999.),h2=h23(ce+float(L)*777.+413.),h3=h23(ce+float(L)*541.+237.);",
-      "float thr=.014+float(L)*.007;",
-      "if(hh<thr){float tb=(thr-hh)/thr;",
-      "float br=pow(tb,1.5)*(.3+.7*h2);br*=.45+.55*float(7-L)/7.;",
-      "float tw=.7+.3*sin(time*(1.2+h2*2.5)+hh*32.);",
-      "float ct=h3;vec3 sc;",
-      "if(ct<.12)sc=mix(vec3(1.,.72,.35),vec3(1.,.88,.65),ct/.12);",
-      "else if(ct<.28)sc=mix(vec3(1.,.88,.65),vec3(.95,.95,.98),(ct-.12)/.16);",
-      "else if(ct<.6)sc=vec3(.95,.95,.98);",
-      "else if(ct<.82)sc=mix(vec3(.95,.95,.98),vec3(.65,.75,1.),(ct-.6)/.22);",
-      "else sc=mix(vec3(.65,.75,1.),vec3(.45,.55,.9),(ct-.82)/.18);",
-      "float d=length(lo);float st=1.-smoothstep(0.,.5,d*(4.5+float(L)*1.3));st=pow(st,3.5);",
-      "col+=sc*st*br*tw*2.8;}}",
-      "return col;}",
-      // === Full Schwarzschild geodesic ray-trace with thin accretion disk ===
-      // Adapted from ghostty-blackhole (s0xDk) — Binet-form leapfrog integrator
-      "vec4 traceNearField(vec2 px,vec2 bh,float r,float time){",
-      "vec2 d=px-bh;float di=length(d);",
-      "float rs=r/2.598;",
-      "float cr=cos(.55),sr=sin(.55);",
-      "vec2 pr_raw=vec2(d.x,-d.y)/rs;",
-      "vec2 pr=vec2(pr_raw.x*cr-pr_raw.y*sr,pr_raw.x*sr+pr_raw.y*cr);",
-      "float b_len=length(pr);",
-      "if(b_len<2.59)return vec4(0.,0.,0.,0.);",
-      "float Z0=14.;vec3 xw=vec3(pr,Z0),vw=vec3(0.,0.,-1.);float h2=b_len*b_len;",
-      "float incl=1.05,ci=cos(incl),si=sin(incl);",
-      "vec3 n=vec3(0.,si,ci),e2=vec3(0.,ci,-si);",
-      "float rin=3.,rout=16.;",
-      "vec3 emitc=vec3(0.);float trans=1.;",
-      "float sPrev=dot(xw,n);vec3 xPrev2=xw;",
-      "for(int i=0;i<40;i++){",
-      "float r2=dot(xw,xw);",
-      "if(r2<1.)return vec4(0.,0.,0.,0.);",
-      "if(xw.z<-Z0&&vw.z<0.)break;",
-      "float rn=sqrt(r2);float dt=clamp(.16*rn,.03,1.5);",
-      // Full leapfrog: kick1 → drift → kick2 (matches ghostty-blackhole)
-      "vec3 a=-1.5*h2*xw/(r2*r2*rn);vw+=a*.5*dt;xw+=vw*dt;",
-      "r2=dot(xw,xw);rn=sqrt(r2);a=-1.5*h2*xw/(r2*r2*rn);vw+=a*.5*dt;",
-      // Disk crossing check after complete step
-      "float sNew=dot(xw,n);",
-      "if(sPrev*sNew<0.&&trans>.02){",
-      "float tc=sPrev/(sPrev-sNew);vec3 xc=mix(xPrev2,xw,tc);float rc=length(xc);",
-      "if(rc>rin&&rc<rout){",
-      "float band=smoothstep(rin,rin*1.25,rc)*(1.-smoothstep(rout*.7,rout,rc));",
-      "float phi=atan(dot(xc,e2),xc.x);float turns=phi/6.2831853;",
-      "float kep=pow(rin/rc,1.5);float gloc=sqrt(max(1.-1.5/rc,.02));",
-      "float swirl=rc*1.08-time*kep*6.*gloc;",
-      "float strk=noise(vec2(rc*2.8,turns*19.+swirl*3.))*.65+noise(vec2(rc*1.,turns*9.+swirl*1.5+7.))*.35;",
-      "strk=.3+1.5*strk*strk;",
-      "vec3 gasdir=normalize(cross(n,xc));",
-      "float beta=clamp(inversesqrt(max(2.*(rc-1.),.2)),0.,.99);",
-      "float g=gloc/max(1.+beta*dot(gasdir,vw)/length(vw),.05);g=mix(1.,g,1.);",
-      "float xpr=max(1.-sqrt(rin/rc),0.);float tprof=pow(rin/rc,.75)*pow(xpr,.25)/.488;",
-      "vec3 cbb=blackbody(18000.*tprof*g);float boost=pow(g,5.);",
-      "float density=band*strk;",
-      "emitc+=trans*cbb*(1.*2.2*density*tprof*tprof*boost);",
-      "trans*=1.-clamp(.3*density,0.,1.);}}",
-      "sPrev=sNew;xPrev2=xw;}",
-      "if(dot(xw,xw)<4.||vw.z>0.)return vec4(0.,0.,0.,0.);",
-      "float lensZ=-(Z0+6.),tSky=(lensZ-xw.z)/vw.z;vec3 hp=xw+vw*tSky;",
-      "vec2 skyW=vec2(hp.x*cr+hp.y*sr,-hp.x*sr+hp.y*cr);",
-      "vec2 skyScr=vec2(skyW.x,-skyW.y)*rs;",
-      "vec2 bgUV=(bh+skyScr)/uRes;bgUV=clamp(bgUV,0.,1.);",
-      "vec3 bg=renderBackground(bgUV)+renderStars(bgUV,time);bg*=trans;",
-      "vec3 col=bg+(vec3(1.)-exp(-emitc*.75));return vec4(col,1.);}",
-      // Schwarzschild geodesic ray-trace (ghostty-blackhole Binet-form leapfrog integrator)
-      "vec2 lensDeflect(vec2 px,vec2 bh,float r){",
-      "vec2 d=px-bh;float di=length(d);",
-      "if(r<.5)return vec2(0.,1.);",
-      // Near-field ray trace: desktop quality (uQuality>=1.5), within 3r of hole
-      "if(di<r*3.&&uQuality>=1.5){",
-      "float rs=r/2.598;float b=di/rs;", // convert screen px to Schwarzschild radii
-      "if(b<2.59)return vec2(0.,0.);",   // captured: below critical impact parameter
-      "float Z0=14.;float x=b,z=Z0,vx=0.,vz=-1.,h2=b*b;",
-      "for(int i=0;i<16;i++){",
-      "float r2=x*x+z*z;if(r2<1.)return vec2(0.,0.);if(z<-Z0&&vz<0.)break;",
-      "float rn=sqrt(r2);float dt=clamp(.12*rn,.03,1.);",
-      "float ax=-1.5*h2*x/(r2*r2*rn),az=-1.5*h2*z/(r2*r2*rn);",
-      "vx+=ax*.5*dt;vz+=az*.5*dt;x+=vx*dt;z+=vz*dt;",
-      "r2=x*x+z*z;rn=sqrt(r2);",
-      "ax=-1.5*h2*x/(r2*r2*rn);az=-1.5*h2*z/(r2*r2*rn);",
-      "vx+=ax*.5*dt;vz+=az*.5*dt;}",
-      "if(x*x+z*z<6.||vz>=-.01)return vec2(0.,0.);", // wound up near photon sphere
-      "float lensZ=-(Z0+6.),t=(lensZ-z)/vz,xSky=x+vx*t;",
-      "float defl=(b-xSky)*rs;defl=min(defl,di*.85);",
-      "float bCrit=r*.94;float sh=(di<bCrit?0.:smoothstep(bCrit,bCrit*1.07,di));",
-      "return vec2(max(defl,0.),sh);}",
-      // Analytic weak-field fallback (far field + mobile/tablet)
-      "float bCrit=r*.94;",
-      "if(di<bCrit)return vec2(0.,0.);",
-      "float shadow=smoothstep(bCrit,bCrit*1.07,di);",
-      "float deflect=0.;",
-      "float x=di/r;",
-      "if(x<1.3)deflect=r*12./max(x-.932,.002);",
-      "else if(x<3.5)deflect=r*r*3.8/max(di-r*.55,r*.02);",
-      "else deflect=r*r*2.2/di;",
-      "deflect=min(deflect,di*.85);",
-      "return vec2(deflect,shadow);}",
-      "vec3 renderEventHorizon(vec2 px,vec2 bh,float r){",
-      "vec2 d=px-bh;float di=length(d);vec3 col=vec3(0);",
-      "if(r<.5)return col;",
-      "if(di<r){float nz2=1.-(di*di)/(r*r);float nz=sqrt(max(nz2,0.));",
-      "float darkness=.01+.05*nz;col+=vec3(.001,.002,.008)*darkness;}",
-      "if(di>r&&di<r*2.){float nd=(di-r)/r;float at=exp(-nd*nd/.1)*.025;col+=vec3(.04,.08,.2)*at;}",
-      "return col;}",
-      "vec3 renderDisk(vec2 px,vec2 bh,float r,float time,vec2 mouse,float lensBoost){",
-      "if(uQuality<0.5)return vec3(0);",
-      "vec2 d=px-bh;float di=length(d);vec3 col=vec3(0);",
-      "if(r<.5)return col;",
-      "float tilt=.3;float sx=d.x,sy=d.y/cos(tilt);",
-      "float dd=sqrt(sx*sx+sy*sy);float diDisk=r*2.2,duDisk=r*6.5;",
-      "float ang=atan(sy,sx);",
-      "float diskT=(dd-diDisk)/(duDisk-diDisk);",
-      "float dil=sqrt(max(1.-r*1.5/max(dd,r*.1),.07));float lt=time*dil;",
-      "float turb=noise(vec2(ang*8.,diskT*12.+lt*.15))*noise(vec2(ang*15.+2.,diskT*8.-lt*.1));",
-      "turb+=.5*noise(vec2(ang*3.-lt*.2,diskT*5.));",
-      "float spiral=sin(ang*3.+diskT*10.-lt*.25)*.5+.5;",
-      "float hotspot=pow(noise(vec2(ang*20.,diskT*15.+lt*.3)),4.)*.6;",
-      "float density=.7+.3*(turb*.6+spiral*.3+hotspot*.1);",
-      "float beamAngle=ang+lt*.15;",
-      "float doppler=1./max(1.-.55*cos(beamAngle),.12);doppler=clamp(pow(doppler,2.)*.5,.05,1.);",
-      "float dopplerAsym=.05+.95*doppler;",
-      "vec3 diskC;",
-      "float diskTemp=mix(8500.,2200.,diskT);diskC=blackbody(diskTemp);",
-      "float la=abs(ang+PI*.5);float lowerMask=1.-smoothstep(PI*.38,PI*.52,la);",
-      "float ua=abs(ang-PI*.5);float upperMask=1.-smoothstep(PI*.38,PI*.52,ua);",
-      "float eqDist=abs(d.y)/max(r,.01);",
-      "float midW=clamp(.6+1.9*(1.-dd/(duDisk*1.65)),.6,2.5);",
-      "float midMask=exp(-eqDist*eqDist/midW);",
-      "if(dd>diDisk&&dd<duDisk&&lowerMask>.001){",
-      "float rad=exp(-diskT*0.3)*1.8;",
-      "float ef=smoothstep(diDisk,diDisk+r*.3,dd)*(1.-smoothstep(duDisk-r*3.5,duDisk,dd));",
-      "col+=diskC*rad*dopplerAsym*ef*lowerMask*density*1.4;}",
-      "if(dd>diDisk&&dd<duDisk&&upperMask>.001){",
-      "float rad=exp(-diskT*0.3)*1.8;",
-      "float ef=smoothstep(diDisk,diDisk+r*.3,dd)*(1.-smoothstep(duDisk-r*3.5,duDisk,dd));",
-      "col+=diskC*rad*dopplerAsym*ef*upperMask*density*1.4;}",
-      "if(dd>diDisk&&dd<duDisk*1.65&&midMask>.001){",
-      "float bEf=smoothstep(diDisk,diDisk+r*.3,dd)*(1.-smoothstep(duDisk*1.2,duDisk*1.65,dd));",
-      "float bDir=d.x>0.?1.:-1.;float bTravel=fract(dd/duDisk*1.2-lt*.2*bDir);float bHot=exp(-pow(bTravel*10.-5.,2.));",
-      "float bFlow=1.+.35*bHot;",
-      "vec3 bCol=mix(vec3(.55,.35,.12),vec3(1.,.88,.6),smoothstep(diDisk,duDisk*.8,dd));",
-      "col+=bCol*1.4*bEf*midMask*bFlow*(.6+.4*dopplerAsym);}",
-      "return col;}",
-      "float segDist(vec2 p,vec2 a,vec2 b){vec2 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return length(pa-ba*h);}",
-      "vec3 renderConstellations(vec2 uv,float time){vec3 col=vec3(0);float s=1.+.1*sin(time*.6);vec3 w=vec3(.35);vec3 lc=vec3(.22);float ls=.0000015;",
-      // Leo (scale 0.6)
-      "vec2 L[9];L[0]=vec2(.150,.724);L[1]=vec2(.171,.740);L[2]=vec2(.159,.754);L[3]=vec2(.203,.783);L[4]=vec2(.195,.794);L[5]=vec2(.202,.816);L[6]=vec2(.215,.816);L[7]=vec2(.220,.782);L[8]=vec2(.234,.768);",
-      "for(int i=0;i<9;i++){float d=length(uv-L[i]);float br=(i==3)?1.8:1.;col+=w*(exp(-d*d/.000012)*br+exp(-d*d/.00006)*.1)*s;}",
-      "col+=lc*exp(-segDist(uv,L[2],L[3])*segDist(uv,L[2],L[3])/ls)*.45;col+=lc*exp(-segDist(uv,L[3],L[4])*segDist(uv,L[3],L[4])/ls)*.45;",
-      "col+=lc*exp(-segDist(uv,L[4],L[5])*segDist(uv,L[4],L[5])/ls)*.45;col+=lc*exp(-segDist(uv,L[5],L[6])*segDist(uv,L[5],L[6])/ls)*.45;",
-      "col+=lc*exp(-segDist(uv,L[3],L[7])*segDist(uv,L[3],L[7])/ls)*.4;col+=lc*exp(-segDist(uv,L[7],L[8])*segDist(uv,L[7],L[8])/ls)*.4;",
-      "col+=lc*exp(-segDist(uv,L[0],L[2])*segDist(uv,L[0],L[2])/ls)*.35;col+=lc*exp(-segDist(uv,L[0],L[1])*segDist(uv,L[0],L[1])/ls)*.3;",
-      "col+=lc*exp(-segDist(uv,L[1],L[8])*segDist(uv,L[1],L[8])/ls)*.35;",
-      // Orion (scale 0.6)
-      "vec2 O[17];O[0]=vec2(.734,.708);O[1]=vec2(.740,.735);O[2]=vec2(.747,.737);O[3]=vec2(.751,.741);O[4]=vec2(.759,.732);O[5]=vec2(.769,.713);O[6]=vec2(.758,.765);O[7]=vec2(.747,.778);O[8]=vec2(.725,.769);O[9]=vec2(.718,.777);O[10]=vec2(.708,.795);O[11]=vec2(.719,.816);O[12]=vec2(.796,.767);O[13]=vec2(.795,.776);O[14]=vec2(.795,.762);O[15]=vec2(.793,.752);O[16]=vec2(.786,.747);",
-      "for(int i=0;i<17;i++){float d=length(uv-O[i]);float br=(i==0||i==5||i==8||i==12||(i>=1&&i<=3))?1.5:1.;col+=w*(exp(-d*d/.000012)*br+exp(-d*d/.00006)*.1)*s;}",
-      "col+=lc*exp(-segDist(uv,O[8],O[6])*segDist(uv,O[8],O[6])/ls)*.4;col+=lc*exp(-segDist(uv,O[6],O[7])*segDist(uv,O[6],O[7])/ls)*.4;",
-      "col+=lc*exp(-segDist(uv,O[8],O[0])*segDist(uv,O[8],O[0])/ls)*.35;",
-      "col+=lc*exp(-segDist(uv,O[6],O[4])*segDist(uv,O[6],O[4])/ls)*.3;col+=lc*exp(-segDist(uv,O[4],O[5])*segDist(uv,O[4],O[5])/ls)*.3;",
-      "col+=lc*exp(-segDist(uv,O[0],O[5])*segDist(uv,O[0],O[5])/ls)*.25;",
-      "col+=lc*exp(-segDist(uv,O[1],O[2])*segDist(uv,O[1],O[2])/ls)*.5;col+=lc*exp(-segDist(uv,O[2],O[3])*segDist(uv,O[2],O[3])/ls)*.5;",
-      "col+=lc*exp(-segDist(uv,O[2],O[6])*segDist(uv,O[2],O[6])/ls)*.35;",
-      "col+=lc*exp(-segDist(uv,O[8],O[9])*segDist(uv,O[8],O[9])/ls)*.35;col+=lc*exp(-segDist(uv,O[9],O[10])*segDist(uv,O[9],O[10])/ls)*.35;",
-      "col+=lc*exp(-segDist(uv,O[10],O[11])*segDist(uv,O[10],O[11])/ls)*.35;",
-      "col+=lc*exp(-segDist(uv,O[6],O[12])*segDist(uv,O[6],O[12])/ls)*.3;col+=lc*exp(-segDist(uv,O[12],O[13])*segDist(uv,O[12],O[13])/ls)*.3;",
-      "col+=lc*exp(-segDist(uv,O[12],O[14])*segDist(uv,O[12],O[14])/ls)*.3;col+=lc*exp(-segDist(uv,O[14],O[15])*segDist(uv,O[14],O[15])/ls)*.3;",
-      "col+=lc*exp(-segDist(uv,O[15],O[16])*segDist(uv,O[15],O[16])/ls)*.3;",
-      // Lyra (scale 0.6)
-      "vec2 Y[5];Y[0]=vec2(.144,.152);Y[1]=vec2(.169,.170);Y[2]=vec2(.124,.204);Y[3]=vec2(.149,.224);Y[4]=vec2(.163,.246);",
-      "for(int i=0;i<5;i++){float d=length(uv-Y[i]);float br=(i==0||i==4)?1.8:1.;col+=w*(exp(-d*d/.000012)*br+exp(-d*d/.00006)*.1)*s;}",
-      "col+=lc*exp(-segDist(uv,Y[0],Y[1])*segDist(uv,Y[0],Y[1])/ls)*.4;col+=lc*exp(-segDist(uv,Y[1],Y[3])*segDist(uv,Y[1],Y[3])/ls)*.4;",
-      "col+=lc*exp(-segDist(uv,Y[3],Y[2])*segDist(uv,Y[3],Y[2])/ls)*.4;col+=lc*exp(-segDist(uv,Y[2],Y[0])*segDist(uv,Y[2],Y[0])/ls)*.4;",
-      "col+=lc*exp(-segDist(uv,Y[4],Y[3])*segDist(uv,Y[4],Y[3])/ls)*.45;col+=lc*exp(-segDist(uv,Y[4],Y[2])*segDist(uv,Y[4],Y[2])/ls)*.4;",
-      "col+=lc*exp(-segDist(uv,Y[4],Y[0])*segDist(uv,Y[4],Y[0])/ls)*.3;",
-      // Cygnus (scale 0.6)
-      "vec2 C[9];C[0]=vec2(.849,.146);C[1]=vec2(.816,.170);C[2]=vec2(.791,.184);C[3]=vec2(.775,.198);C[4]=vec2(.816,.204);C[5]=vec2(.778,.160);C[6]=vec2(.753,.146);C[7]=vec2(.821,.223);C[8]=vec2(.829,.228);",
-      "for(int i=0;i<9;i++){float d=length(uv-C[i]);float br=(i==0||i==2||i==8)?1.6:1.;col+=w*(exp(-d*d/.000012)*br+exp(-d*d/.00006)*.1)*s;}",
-      "col+=lc*exp(-segDist(uv,C[8],C[7])*segDist(uv,C[8],C[7])/ls)*.45;col+=lc*exp(-segDist(uv,C[7],C[2])*segDist(uv,C[7],C[2])/ls)*.4;",
-      "col+=lc*exp(-segDist(uv,C[2],C[1])*segDist(uv,C[2],C[1])/ls)*.4;col+=lc*exp(-segDist(uv,C[1],C[0])*segDist(uv,C[1],C[0])/ls)*.4;",
-      "col+=lc*exp(-segDist(uv,C[2],C[5])*segDist(uv,C[2],C[5])/ls)*.4;col+=lc*exp(-segDist(uv,C[5],C[6])*segDist(uv,C[5],C[6])/ls)*.4;",
-      "col+=lc*exp(-segDist(uv,C[2],C[4])*segDist(uv,C[2],C[4])/ls)*.4;col+=lc*exp(-segDist(uv,C[4],C[3])*segDist(uv,C[4],C[3])/ls)*.4;",
-      "return col;}",
-      "vec2 renderLens(vec2 uv,vec2 px,vec2 bh,float r,float lensStrength){",
-      "float di=length(px-bh);vec2 ld=lensDeflect(px,bh,r);float deflect=ld.x;",
-      "vec2 luv=uv;",
-      "if(deflect>.1&&r>.5){vec2 tw=normalize(bh-px);luv+=tw*deflect*lensStrength/uRes;}",
-      "return luv;}",
-      "vec3 toneMapping(vec3 col){",
-      "float a=2.2;float b=.02;float c=2.1;float d=.5;float e=.12;",
-      "return clamp((col*(a*col+b))/(col*(c*col+d)+e),0.,1.);}",
-      "vec3 postProcess(vec3 col,vec2 uv,float time){",
-      "float ca=.0015;float rad=length(uv-.5);",
-      "float r=ca*rad;col.r=col.r*(1.-r)+col.g*r*.5;col.b=col.b*(1.-r)+col.g*r*.5;",
-      "if(uQuality>=2.){",
-      "float grain=(h23(uv*vec2(1234.,5678.)+time*100.)-.5)*.025;",
-      "col+=grain;}",
-      "float vig=1.-dot(uv-.5,uv-.5)*.22;col*=vig;",
-      "return col;}",
-      "void main(){",
-      "vec2 uv=vUv;vec2 px=uv*uRes;vec2 bh=uBH;",
-      "float r=uRadius;float time=uTime;vec2 mouse=uMouse;",
-      "float breath=1.+.003*sin(time*.4)*.5+.002*cos(time*.7)*.5;",
-      "r*=breath;",
-      "float distBH=length(px-bh);float lensBoost=.8+.4*mouse.x;",
-      "vec3 color;float shadow;",
-      // ── Near field: Schwarzschild ray-trace + thin accretion disk ──
-      "if(distBH<r*7.&&uQuality>=1.5){",
-      "vec4 rt=traceNearField(px,bh,r,time);color=rt.rgb;shadow=rt.a;",
-      "vec2 luv2=renderLens(uv,px,bh,r,lensBoost);color+=renderConstellations(luv2,time)*.7;",
-      "float prDist2=abs(distBH-r);float ph=exp(-prDist2*prDist2/(r*r*.0008))*.2;color+=vec3(.5,.65,.95)*ph*smoothstep(.1,.4,r);",
-      "color*=.02+.98*shadow;",
-      // ── Far field: analytic pipeline ──
-      "}else{",
-      "vec2 ld=lensDeflect(px,bh,r);float deflect=ld.x;shadow=ld.y;",
-      "vec2 luv=renderLens(uv,px,bh,r,lensBoost);",
-      "float infR=r*12.;float blendLens=0.;if(infR>.5)blendLens=1.-smoothstep(infR*.02,infR*.8,distBH);",
-      "vec3 bg=renderBackground(uv);vec3 bgL=renderBackground(luv);",
-      "vec3 stars=renderStars(uv,time);vec3 starsL=renderStars(luv,time);",
-      "vec3 starsArc=starsL;if(distBH<r*4.5&&blendLens>.05){starsArc=vec3(0);for(int si=0;si<3;si++){float st=float(si)/2.;vec2 suv=mix(uv,luv,st);starsArc+=renderStars(suv,time)/3.;}}",
-      "float lensMag=1.+.6*(1.-smoothstep(r*2.,r*8.,distBH));",
-      "color=mix(bg+stars,bgL+starsArc*lensMag,blendLens);",
-      "color*=.02+.98*shadow;",
-      "color+=renderConstellations(luv,time);",
-      "if(uQuality<1.5)color+=renderEventHorizon(px,bh,r);",
-      "float prDist2=abs(distBH-r);float ph=exp(-prDist2*prDist2/(r*r*.0008))*.35;color+=vec3(.5,.65,.95)*ph*smoothstep(.1,.4,r);",
-      // Only use old disk on mobile/tablet; desktop ray-trace handles it
-      "if(uQuality<1.5){",
-      "color+=renderDisk(px,bh,r,time,mouse,lensBoost);",
-      "if(distBH>r&&distBH<r*3.8){float farStr=1./max(distBH/r-.88,.08);vec2 farPX=bh-(px-bh)*min(farStr*.55,1.3);float farDi=length(farPX-bh);float vw=abs(px.y-bh.y)/max(distBH,1.);float farMask=smoothstep(r*1.2,r*.94,distBH)*smoothstep(r*4.,r*3.,distBH)*min(vw*2.8,1.)*.4;if(farMask>.01){vec3 farDisk=renderDisk(farPX,bh,r,time,mouse,lensBoost*.5);color+=farDisk*farMask;}}",
-      "}",
-      "}",
-      "vec2 tuv=renderLens(uv,px,bh,r,lensBoost);tuv.y-=.08;",
-      "vec4 ts=texture(uTex,tuv);color=mix(color,ts.rgb*1.1,ts.a);",
-      "color=toneMapping(color);",
-      "color=postProcess(color,uv,time);",
-      "gl_FragColor=vec4(color,1.);}",
-    ].join("\n");
-
-    // 经典版 shader 文件（云端 v2.14 原版），运行时加载
-    const FS_RAYTRACED = FS;
-    let classicShader = null, prevMode = selfRef.current.bhMode;
-    const isDesktop = q >= 2;
-    fetch("/blackhole_classic.glsl")
-      .then(r => r.text()).then(src => {
-        classicShader = src;
-        // 非桌面设备始终用经典版 shader
-        if (!isDesktop) { M.fragmentShader = classicShader; M.needsUpdate = true; }
-      }).catch(() => {});
-
-    const M = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VS, fragmentShader: FS });
-    S.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), M));
-
-    // State
+    // ── 状态 ──
     const TR = Math.min(innerWidth, innerHeight) * 0.035;
     const bhTarget = { x: innerWidth * 0.5, y: innerHeight * 0.78 };
     const bh = { x: innerWidth * 0.5, y: innerHeight * 0.78, radius: 0, animStart: performance.now(), animDur: 3200 };
@@ -396,7 +563,7 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
     let mouseOn = false;
     const camDrift = { x: 0, y: 0, zoom: 0, waypointX: innerWidth * 0.5, waypointY: innerHeight * 0.78 };
 
-    c.addEventListener("pointermove", function (e) {
+    c.addEventListener("pointermove", (e) => {
       const rect = c.getBoundingClientRect();
       mouse.x = e.clientX - rect.left;
       mouse.y = e.clientY - rect.top;
@@ -405,34 +572,51 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
     c.addEventListener("pointerleave", () => { mouseOn = false; });
 
     const handleKey = (e) => {
-      if (e.key.toLowerCase() === "r") { e.preventDefault(); bhTarget.x = innerWidth * 0.5; bhTarget.y = innerHeight * 0.78; }
+      if (e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        bhTarget.x = innerWidth * 0.5;
+        bhTarget.y = innerHeight * 0.78;
+      }
+      // 预设快捷键 0-7
+      const idx = parseInt(e.key);
+      if (idx >= 0 && idx <= 7 && PRESETS[idx]) {
+        selfRef.current.preset = idx;
+      }
     };
     window.addEventListener("keydown", handleKey);
 
     const handleResize = () => {
-      R.setSize(innerWidth, innerHeight);
-      RE.set(innerWidth, innerHeight);
-      U.uRes.value.set(innerWidth, innerHeight);
+      const dpr = Math.min(devicePixelRatio, maxPR);
+      c.width = innerWidth * dpr;
+      c.height = innerHeight * dpr;
+      c.style.width = innerWidth + "px";
+      c.style.height = innerHeight + "px";
+      gl.viewport(0, 0, c.width, c.height);
     };
     window.addEventListener("resize", handleResize);
+    handleResize();
 
-    // Animation
-    const clock = new THREE.Clock();
+    // ── 渲染循环 ──
+    let startTime = performance.now() / 1000;
     let first = true;
-    function A(ts) {
-      animId = requestAnimationFrame(A);
-      const dt = Math.min(clock.getDelta(), 0.1);
-      U.uTime.value += dt;
 
+    function render(ts) {
+      animId = requestAnimationFrame(render);
+      const now = ts / 1000;
+      const dt = Math.min(now - startTime, 0.1);
+      startTime = now;
+
+      const s = selfRef.current;
+
+      // 黑洞生长动画
       const el = ts - bh.animStart;
       const at = Math.min(el / bh.animDur, 1);
       const ea = 1 - Math.pow(1 - at, 3);
       bh.radius = TR * ea;
 
-      // BH movement
+      // BH 移动
       const dx = mouse.x - bh.x, dy = mouse.y - bh.y;
       const distToMouse = Math.sqrt(dx * dx + dy * dy);
-      const s = selfRef.current;
       const attract = Math.min(Math.max(s.attract || 0.45, 0.05), 0.8);
       const attractRange = Math.min(innerWidth, innerHeight) * attract;
       const distToTarget = Math.sqrt((bh.x - camDrift.waypointX) ** 2 + (bh.y - camDrift.waypointY) ** 2);
@@ -449,37 +633,65 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
         bhTarget.x = bh.x + dx * pull;
         bhTarget.y = bh.y + dy * pull;
       }
-      let tx = bhTarget.x - bh.x, ty = bhTarget.y - bh.y;
-      const td = Math.sqrt(tx * tx + ty * ty);
+      let tx2 = bhTarget.x - bh.x, ty = bhTarget.y - bh.y;
+      const td = Math.sqrt(tx2 * tx2 + ty * ty);
       const patrolSpeed = Math.min(Math.max(s.speed || 50, 10), 200);
       const chaseSpeed = patrolSpeed * 2.4;
-      const speed = (mouseOn && distToMouse < attractRange) ? chaseSpeed : patrolSpeed;
-      if (td > 1) { const step = Math.min(speed * dt, td); bh.x += tx / td * step; bh.y += ty / td * step; }
+      const spd = (mouseOn && distToMouse < attractRange) ? chaseSpeed : patrolSpeed;
+      if (td > 1) { const step = Math.min(spd * dt, td); bh.x += tx2 / td * step; bh.y += ty / td * step; }
       bh.x = Math.min(innerWidth - 5, Math.max(5, bh.x));
       bh.y = Math.min(innerHeight - 5, Math.max(5, bh.y));
 
-      U.uBH.value.set(bh.x, RE.y - bh.y);
-      U.uRadius.value = bh.radius;
-      U.uMouse.value.set(mouse.x / innerWidth, mouse.y);
-      U.uZoom.value = camDrift.zoom;
-      U.uBHMode.value = s.bhMode;
-      // 切换经典版 / 光线追踪 shader
-      if (prevMode !== s.bhMode) {
-        prevMode = s.bhMode;
-        // 非桌面设备强制经典版（测试按钮可覆盖），桌面设备按用户选择
-        const useClassic = s.bhMode === 0 || (!isDesktop && !s.forceRT);
-        M.fragmentShader = useClassic && classicShader ? classicShader : FS_RAYTRACED;
-        M.needsUpdate = true;
-      }
+      // 应用预设（preset=-1 时使用自定义参数）
+      const p = (s.preset >= 0 && s.preset < PRESETS.length)
+        ? PRESETS[s.preset]
+        : (s.customParams || PRESETS[5]);
+      const intensity = Math.min(bh.radius / TR, 1.0);
 
-      R.render(S, K);
+      // 上传 uniforms
+      gl.useProgram(program);
+      gl.uniform2f(UL.u_resolution, c.width, c.height);
+      gl.uniform1f(UL.u_time, now);
+      const d = new Date();
+      gl.uniform4f(UL.u_date, d.getFullYear(), d.getMonth()+1, d.getDate(),
+                   d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds());
+      gl.uniform4f(UL.u_cursorColor, 0, 0, 0, 0);
+      gl.uniform4f(UL.u_prevCursorColor, 0, 0, 0, 0);
+      gl.uniform1f(UL.u_timeCursorChange, 0);
+      gl.uniform1f(UL.u_intensity, intensity);
+      gl.uniform2f(UL.u_center, bh.x / innerWidth, 1.0 - bh.y / innerHeight);
+      gl.uniform1f(UL.u_sizeDial, (bh.radius / TR) * (s.sizeDial || 0.7));
+      gl.uniform1f(UL.u_diskTemp, p.temp);
+      gl.uniform1f(UL.u_diskIncl, p.incl);
+      gl.uniform1f(UL.u_diskRoll, p.roll);
+      gl.uniform1f(UL.u_diskInner, p.inner);
+      gl.uniform1f(UL.u_diskOuter, p.outer);
+      gl.uniform1f(UL.u_diskOpac, p.opac);
+      gl.uniform1f(UL.u_diskDopp, p.dopp);
+      gl.uniform1f(UL.u_diskBeam, p.beam);
+      gl.uniform1f(UL.u_diskGain, p.gain);
+      gl.uniform1f(UL.u_diskContrast, p.contr);
+      gl.uniform1f(UL.u_diskWind, p.wind);
+      gl.uniform1f(UL.u_diskSpeed, p.speed);
+      gl.uniform1f(UL.u_exposure, p.expo);
+      gl.uniform1f(UL.u_starGain, p.star);
+      gl.uniform1f(UL.u_driftSpeed, 1.0);
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, bgTexture);
+      gl.uniform1i(UL.u_background, 0);
+
+      gl.bindVertexArray(vao);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
       if (first) {
         first = false;
         const er = gl.getError();
-        h.innerHTML = er !== gl.NO_ERROR ? "⚠ GL err 0x" + er.toString(16) : "made by gch / 残留v枫楪<br><span style='font-size:.75rem;opacity:.85'>建议用电脑打开，效果更佳</span>";
+        h.innerHTML = er !== gl.NO_ERROR ? "⚠ GL err 0x" + er.toString(16)
+          : "made by gch / 残留v枫楪<br><span style='font-size:.75rem;opacity:.85'>建议用电脑打开，效果更佳</span>";
       }
     }
-    requestAnimationFrame(A);
+    requestAnimationFrame(render);
 
     onReady?.();
 
@@ -489,9 +701,12 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("keydown", handleKey);
       window.removeEventListener("resize", handleResize);
-      R.dispose();
-      M.dispose();
-      te.dispose();
+      gl.deleteProgram(program);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+      gl.deleteVertexArray(vao);
+      gl.deleteBuffer(buf);
+      gl.deleteTexture(bgTexture);
     };
   }, []);
 
