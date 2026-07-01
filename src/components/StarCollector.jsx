@@ -199,10 +199,7 @@ export default function StarCollector({ onBack }) {
           continue;
         }
         if (it.y > window.innerHeight + 30) {
-          if (it.type !== "bomb") {
-            if (s.mode === "lives") { s.lives--; if (s.lives <= 0) s.gameOver = true; }
-            else { s.score = Math.max(0, s.score - (it.type === "bstar" ? 3 : 1)); }
-          }
+          if (it.type !== "bomb" && s.mode === "lives") { s.lives--; if (s.lives <= 0) s.gameOver = true; }
           s.items.splice(i, 1);
         }
       }
@@ -301,18 +298,34 @@ export default function StarCollector({ onBack }) {
           textShadow: "0 0 40px rgba(140,190,250,0.4)" }}>
           人马座 · 星点收集
         </div>
-        <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.35)", marginBottom: 48 }}>
+        <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.35)", marginBottom: 28 }}>
           移动鼠标或键盘 A/D 左右键接住下落星星
+        </div>
+
+        {/* 物品说明 */}
+        <div style={{ display: "flex", gap: 28, marginBottom: 40, fontSize: "0.78rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "#e8b830", fontSize: "1.2rem" }}>*</span>
+            <span style={{ color: "rgba(255,255,255,0.45)" }}>金色星 +1</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "#60b0f0", fontSize: "1.2rem" }}>*</span>
+            <span style={{ color: "rgba(255,255,255,0.45)" }}>蓝色星 +3</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "#f05050", fontSize: "1.2rem" }}>o</span>
+            <span style={{ color: "rgba(255,255,255,0.45)" }}>炸弹 -3 / -1命</span>
+          </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16, width: 280 }}>
           <button onClick={() => startGame("timed")} style={modeBtn}>
             <div style={{ fontSize: "1.1rem", fontWeight: 500 }}>计时模式 — 60 秒</div>
-            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", marginTop: 4 }}>在限定时间内尽可能多得分</div>
+            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", marginTop: 4 }}>限时得分，接炸弹扣分，漏接不扣分</div>
           </button>
           <button onClick={() => startGame("lives")} style={modeBtn}>
             <div style={{ fontSize: "1.1rem", fontWeight: 500 }}>生命模式 — 3 条命</div>
-            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", marginTop: 4 }}>漏接扣命，坚持越久分数越高</div>
+            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", marginTop: 4 }}>漏接或接炸弹扣命，坚持越久分数越高</div>
           </button>
         </div>
 
