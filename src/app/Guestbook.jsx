@@ -68,33 +68,66 @@ export default function Guestbook({ onBack }) {
       {/* 留言气泡 —— 左右交替排列在整个 panel 内 */}
       {messages.map((m, i) => {
         const isLeft = i % 2 === 0;
+        const bubbleRadius = isLeft ? "4px 14px 14px 14px" : "14px 4px 14px 14px";
         return (
           <div
             key={m.id}
-            className="msg-bubble"
             style={{
               position: "absolute",
               [isLeft ? "left" : "right"]: "4vw",
               top: `${14 + i * 9}vh`,
               maxWidth: "26vw",
               minWidth: "16vw",
-              padding: "10px 14px",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: isLeft ? "4px 14px 14px 14px" : "14px 4px 14px 14px",
-              fontSize: "0.8rem",
-              lineHeight: 1.6,
-              color: "rgba(255,255,255,0.55)",
-              backdropFilter: "blur(8px)",
               zIndex: 2,
               pointerEvents: "none",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: isLeft ? "flex-start" : "flex-end",
             }}
           >
-            <span style={{ fontWeight: 500, color: "rgba(255,255,255,0.7)", fontSize: "0.8rem" }}>
-              {m.name}
-              {m.msgStatus && <span style={{ marginLeft: 6, fontWeight: 400 }}>{m.msgStatus}</span>}
-            </span>
-            <span style={{ display: "block", marginTop: 3 }}>{m.content}</span>
+            {/* 主气泡 */}
+            <div
+              className="msg-bubble"
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: bubbleRadius,
+                fontSize: "0.8rem",
+                lineHeight: 1.6,
+                color: "rgba(255,255,255,0.55)",
+                backdropFilter: "blur(8px)",
+                boxSizing: "border-box",
+              }}
+            >
+              <span style={{ fontWeight: 500, color: "rgba(255,255,255,0.7)", fontSize: "0.8rem" }}>
+                {m.name}
+                {m.msgStatus && <span style={{ marginLeft: 6, fontWeight: 400 }}>{m.msgStatus}</span>}
+              </span>
+              <span style={{ display: "block", marginTop: 3 }}>{m.content}</span>
+            </div>
+
+            {/* 回复气泡 */}
+            {m.reply && (
+              <div
+                style={{
+                  marginTop: -1,
+                  maxWidth: "90%",
+                  padding: "6px 12px",
+                  background: "rgba(100,160,255,0.06)",
+                  border: "1px solid rgba(100,160,255,0.1)",
+                  borderRadius: isLeft ? "0 0 10px 10px" : "0 0 10px 10px",
+                  fontSize: "0.72rem",
+                  lineHeight: 1.5,
+                  color: "rgba(180,210,255,0.6)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <span style={{ color: "rgba(160,200,255,0.5)", fontWeight: 500, marginRight: 2 }}>回复：</span>
+                {m.reply}
+              </div>
+            )}
           </div>
         );
       })}

@@ -81,6 +81,9 @@ export const messages = pgTable("message", {
   msgStatus: text("msgStatus").default(""),   // 留言者自己的状态
   approved: integer("approved").default(0),   // 0=待审 1=通过 -1=拒绝
   ip: text("ip"),                              // 提交者 IP，用于频率限制
+  reply: text("reply"),                        // 回复内容
+  replyIp: text("replyIp"),                    // 回复者 IP，用于频率限制
+  replyAt: timestamp("replyAt", { mode: "date" }),  // 回复时间
   createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
 });
 
