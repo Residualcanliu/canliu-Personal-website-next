@@ -5,7 +5,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 // ── 深渊模式 参数默认 & 倍率 ──
 const ABYSS_PRESETS = {
   basketW:   { vals: [80,105,130,160,190], mul: [0.35,0.15,0,-0.15,-0.25] },
-  fallSpeed: { vals: [0.3,0.4,0.5,0.7,0.9,1.2], mul: [-0.30,-0.15,0,0.15,0.30,0.50] },
+  fallSpeed: { vals: [0.3,0.4,0.5,0.7,0.9,1.2,1.5], mul: [-0.30,-0.15,0,0.15,0.30,0.50,0.65] },
   moveSpeed: { vals: [7,10,14,18,22],       mul: [0.30,0.15,0,-0.15,-0.25] },
   starSize:  { vals: [0,1,2],               mul: [0.30,0,-0.25] }, // 0=小 1=中 2=大
 };
@@ -129,6 +129,8 @@ export default function StarCollector({ onBack }) {
       doubleScore: false,
       magnetActive: false,
       speedActive: false,
+      // 排行榜提交
+      submitPhase: 0, playerName: "", nameInput: "", submitMsg: "",
     };
     const highKey = "starCollectorHigh_" + (mode === "abyss" ? "abyss" : mode);
     try { s.high = parseInt(localStorage.getItem(highKey) || "0", 10) || 0; } catch { s.high = 0; }
@@ -139,7 +141,19 @@ export default function StarCollector({ onBack }) {
       if (s.countdown <= 0) clearInterval(cdTimer);
     }, 800) : null;
 
-    const onKeyDown = (e) => { s.keys[e.key] = true; };
+    const onKeyDown = (e) => {
+      if (s.gameOver && s.submitPhase === 1) {
+        if (e.key === "Enter") {
+          const name = s.nameInput.trim() || "匿名";
+          s.playerName = name; s.submitPhase = 2;
+          fetch("/api/game-scores", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ mode:s.mode, score:s.score, playerName:name, config: s.abyss ? { basketW:ABYSS_PRESETS.basketW.vals[cfg.basketW], fallSpeed:ABYSS_PRESETS.fallSpeed.vals[cfg.fallSpeed], moveSpeed:ABYSS_PRESETS.moveSpeed.vals[cfg.moveSpeed], starSize:ABYSS_PRESETS.starSize.vals[cfg.starSize] } : null }) })
+            .then(r=>r.json()).then(d => { s.submitMsg = "上传成功！"; }).catch(() => { s.submitMsg = "网络错误"; });
+        } else if (e.key === "Backspace") { s.nameInput = s.nameInput.slice(0,-1); }
+        else if (e.key.length === 1 && s.nameInput.length < 12) { s.nameInput += e.key; }
+        return;
+      }
+      s.keys[e.key] = true;
+    };
     const onKeyUp = (e) => { s.keys[e.key] = false; };
     window.addEventListener("resize", resize);
     window.addEventListener("keydown", onKeyDown);
@@ -270,7 +284,8 @@ export default function StarCollector({ onBack }) {
       if (s.paused) { requestAnimationFrame(loop); return; }
 
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-      ctx.fillStyle = "#050510"; ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+      ctx.fillStyle = s.abyss ? "#08040c" : "#050510";
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
       const tNow = performance.now() / 1000;
       for (const bs of bgStars) {
         const f = 0.5 + 0.5 * Math.sin(tNow * 1.5 + bs.tw);
@@ -297,14 +312,50 @@ export default function StarCollector({ onBack }) {
         if (fs > s.high) { s.high = fs; try { localStorage.setItem(highKey, String(s.high)); } catch {} }
         ctx.fillStyle = "rgba(2,2,16,0.7)"; ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
         ctx.textAlign = "center";
-        ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "600 36px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-        ctx.fillText("游戏结束", window.innerWidth / 2, window.innerHeight / 2 - 60);
-        ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.font = "400 20px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-        ctx.fillText("得分: " + fs + "    最高: " + s.high, window.innerWidth / 2, window.innerHeight / 2 - 10);
-        ctx.fillStyle = "rgba(180,210,255,0.7)"; ctx.font = "400 16px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-        ctx.fillText("点击任意位置返回菜单", window.innerWidth / 2, window.innerHeight / 2 + 30);
-        const goMenu = () => { canvas.removeEventListener("click", goMenu); menuRef.current?.(); };
-        canvas.addEventListener("click", goMenu);
+
+        if (s.submitPhase === 0) {
+          // 显示分数 + 上传/跳过按钮
+          ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "600 36px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+          ctx.fillText("游戏结束", window.innerWidth / 2, window.innerHeight / 2 - 80);
+          ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.font = "400 20px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+          ctx.fillText("得分: " + fs + "    最高: " + s.high, window.innerWidth / 2, window.innerHeight / 2 - 30);
+          // 上传按钮
+          const btnX = window.innerWidth / 2 - 90, btnY = window.innerHeight / 2 + 10;
+          ctx.fillStyle = "rgba(100,180,255,0.15)"; ctx.fillRect(btnX, btnY, 80, 36);
+          ctx.fillStyle = "rgba(200,220,255,0.8)"; ctx.font = "400 15px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+          ctx.fillText("上传成绩", btnX + 40, btnY + 24);
+          // 跳过按钮
+          ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fillRect(btnX + 100, btnY, 80, 36);
+          ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.fillText("跳过", btnX + 140, btnY + 24);
+
+          const clickSubmit = (e) => {
+            const cx = e.clientX, cy = e.clientY;
+            if (cx >= btnX && cx <= btnX + 80 && cy >= btnY && cy <= btnY + 36) { s.submitPhase = 1; canvas.removeEventListener("click", clickSubmit); }
+            else if (cx >= btnX + 100 && cx <= btnX + 180 && cy >= btnY && cy <= btnY + 36) { canvas.removeEventListener("click", clickSubmit); s.submitPhase = -1; }
+          };
+          canvas.addEventListener("click", clickSubmit);
+        } else if (s.submitPhase === 1) {
+          // 输入名字
+          ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "600 28px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+          ctx.fillText("上传成绩 — 输入名字", window.innerWidth / 2, window.innerHeight / 2 - 60);
+          ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.font = "400 16px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+          ctx.fillText(s.nameInput + (Math.floor(performance.now() / 500) % 2 ? "|" : " "), window.innerWidth / 2, window.innerHeight / 2 - 10);
+          ctx.fillStyle = "rgba(255,255,255,0.25)"; ctx.font = "400 12px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+          ctx.fillText("输入后按 Enter 提交", window.innerWidth / 2, window.innerHeight / 2 + 20);
+        } else if (s.submitPhase === 2) {
+          ctx.fillStyle = "rgba(100,255,140,0.6)"; ctx.font = "400 16px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+          ctx.fillText(s.submitMsg || "上传成功！", window.innerWidth / 2, window.innerHeight / 2 + 20);
+          ctx.fillStyle = "rgba(180,210,255,0.7)"; ctx.font = "400 14px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+          ctx.fillText("点击任意位置返回菜单", window.innerWidth / 2, window.innerHeight / 2 + 48);
+          const goMenu = () => { canvas.removeEventListener("click", goMenu); menuRef.current?.(); };
+          canvas.addEventListener("click", goMenu);
+        } else {
+          // submitPhase === -1: 跳过
+          const goMenu = () => { canvas.removeEventListener("click", goMenu); menuRef.current?.(); };
+          canvas.addEventListener("click", goMenu);
+          ctx.fillStyle = "rgba(180,210,255,0.7)"; ctx.font = "400 14px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+          ctx.fillText("点击任意位置返回菜单", window.innerWidth / 2, window.innerHeight / 2 + 48);
+        }
         requestAnimationFrame(loop); return;
       }
 
@@ -444,7 +495,7 @@ export default function StarCollector({ onBack }) {
     const lbl = { display:"flex",justifyContent:"space-between",fontSize:"0.85rem",color:"rgba(255,255,255,0.65)" };
     const rangeS = { width:"100%",accentColor:"rgba(140,180,255,0.8)",cursor:"pointer" };
     const bv = ["极小","较小","标准","较大","超大"];
-    const fv = ["极慢","慢","标准","快","很快","风暴"];
+    const fv = ["极慢","慢","标准","快","很快","风暴","深渊风暴"];
     const mv = ["龟速","慢","标准","快","极速"];
     const sv = ["小","中","大"];
 
@@ -464,7 +515,7 @@ export default function StarCollector({ onBack }) {
           </div>
           <div style={sl}>
             <div style={lbl}><span>下落速度</span><span>{fv[cfg.fallSpeed]}</span></div>
-            <input type="range" min={0} max={5} step={1} value={cfg.fallSpeed} onChange={e => update("fallSpeed",+e.target.value)} style={rangeS} />
+            <input type="range" min={0} max={6} step={1} value={cfg.fallSpeed} onChange={e => update("fallSpeed",+e.target.value)} style={rangeS} />
           </div>
           <div style={sl}>
             <div style={lbl}><span>碗移速</span><span>{mv[cfg.moveSpeed]}</span></div>

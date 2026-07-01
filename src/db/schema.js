@@ -107,6 +107,16 @@ export const songs = pgTable("song", {
   createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
 });
 
+/* ---- 游戏排行榜 ---- */
+export const gameScores = pgTable("gameScore", {
+  id: text("id").primaryKey(),
+  mode: text("mode").notNull(),          // "timed" / "lives" / "abyss"
+  score: integer("score").notNull(),
+  playerName: text("playerName").default("匿名"),
+  config: text("config"),                // abyss 模式参数 JSON
+  createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
+});
+
 /* ---- 站点设置（键值对） ---- */
 export const settings = pgTable("setting", {
   key: text("key").primaryKey(),
