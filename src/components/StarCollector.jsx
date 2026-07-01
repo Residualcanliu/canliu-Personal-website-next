@@ -153,6 +153,7 @@ export default function StarCollector({ onBack, onModeChange }) {
         .then(async r => {
           const d = await r.json();
           if (r.status === 409) { s.submitConflict = true; }
+          else if (r.status === 400 && d.existingScore != null) { s.submitPhase = 2; s.submitMsg = "未超旧成绩(" + d.existingScore + ")，无需覆盖"; }
           else { s.submitPhase = 2; s.submitConflict = false; s.submitMsg = d.overwritten ? "成绩已覆盖！" : "上传成功！"; }
         }).catch(() => { s.submitMsg = "网络错误"; s.submitPhase = 2; });
     };

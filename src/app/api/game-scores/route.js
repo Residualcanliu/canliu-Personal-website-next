@@ -35,11 +35,17 @@ export async function POST(req) {
       .limit(1);
 
     if (existing.length > 0 && !overwrite) {
+      if (Math.round(score) <= existing[0].score) {
+        return NextResponse.json({ error: "新分数未超过旧成绩，无需覆盖", existingScore: existing[0].score }, { status: 400 });
+      }
       return NextResponse.json({ conflict: true, message: "名字已存在，是否覆盖旧成绩？", existingScore: existing[0].score }, { status: 409 });
     }
 
-    // 覆盖：删旧插新
+    // 覆盖：删旧插新（仅当新分更高）
     if (existing.length > 0 && overwrite) {
+      if (Math.round(score) <= existing[0].score) {
+        return NextResponse.json({ error: "新分数未超过旧成绩，无需覆盖", existingScore: existing[0].score }, { status: 400 });
+      }
       await db.delete(gameScores).where(and(eq(gameScores.mode, mode), eq(gameScores.playerName, name)));
     }
 
