@@ -74,7 +74,8 @@ export default function StarCollector({ onBack }) {
       comboFlash: 0,
       startTime: performance.now(),
     };
-    try { s.high = parseInt(localStorage.getItem("starCollectorHigh") || "0", 10) || 0; } catch { s.high = 0; }
+    const highKey = "starCollectorHigh_" + mode;
+    try { s.high = parseInt(localStorage.getItem(highKey) || "0", 10) || 0; } catch { s.high = 0; }
     stateRef.current = s;
 
     // 倒计时计时器
@@ -208,7 +209,7 @@ export default function StarCollector({ onBack }) {
 
       if (s.gameOver) {
         const finalScore = s.score;
-        if (finalScore > s.high) { s.high = finalScore; try { localStorage.setItem("starCollectorHigh", String(s.high)); } catch {} }
+        if (finalScore > s.high) { s.high = finalScore; try { localStorage.setItem(highKey, String(s.high)); } catch {} }
         ctx.fillStyle = "rgba(2,2,16,0.7)";
         ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
         ctx.textAlign = "center";
@@ -290,17 +291,19 @@ export default function StarCollector({ onBack }) {
       ctx.fillStyle = "rgba(255,255,255,0.9)";
       ctx.font = "600 40px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
       ctx.fillText(s.score, window.innerWidth / 2, 72);
-      ctx.font = "400 16px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      ctx.font = "400 18px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
       if (s.mode === "timed") {
         ctx.fillStyle = "rgba(255,255,255,0.3)";
-        ctx.fillText("时间", window.innerWidth / 2, 108);
+        ctx.fillText("时间", window.innerWidth / 2, 110);
         ctx.fillStyle = s.timeLeft <= 10 ? "rgba(255,100,100,0.9)" : "rgba(255,255,255,0.55)";
-        ctx.fillText(s.timeLeft.toFixed(1) + "s", window.innerWidth / 2, 126);
+        ctx.font = "600 22px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+        ctx.fillText(s.timeLeft.toFixed(1) + "s", window.innerWidth / 2, 132);
       } else {
         ctx.fillStyle = "rgba(255,255,255,0.3)";
-        ctx.fillText("生命", window.innerWidth / 2, 108);
+        ctx.fillText("生命", window.innerWidth / 2, 110);
         ctx.fillStyle = s.lives <= 1 ? "rgba(255,100,100,0.9)" : "rgba(255,255,255,0.55)";
-        ctx.fillText("o".repeat(Math.max(0, s.lives)), window.innerWidth / 2, 126);
+        ctx.font = "600 22px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+        ctx.fillText(String(Math.max(0, s.lives)), window.innerWidth / 2, 132);
       }
       ctx.fillStyle = "rgba(255,255,255,0.18)";
       ctx.font = "400 12px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
@@ -363,12 +366,12 @@ export default function StarCollector({ onBack }) {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16, width: 280 }}>
           <button onClick={() => startGame("timed")} style={modeBtn}>
-            <div style={{ fontSize: "1.1rem", fontWeight: 500 }}>计时模式 — 60 秒</div>
-            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", marginTop: 4 }}>限时得分，接炸弹扣分，漏接不扣分</div>
+            <div style={{ fontSize: "1.35rem", fontWeight: 500 }}>计时模式 — 60 秒</div>
+            <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.3)", marginTop: 5 }}>限时得分，接炸弹扣分，漏接不扣分</div>
           </button>
           <button onClick={() => startGame("lives")} style={modeBtn}>
-            <div style={{ fontSize: "1.1rem", fontWeight: 500 }}>生命模式 — 3 条命</div>
-            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", marginTop: 4 }}>漏接或接炸弹扣命，坚持越久分数越高</div>
+            <div style={{ fontSize: "1.35rem", fontWeight: 500 }}>生命模式 — 3 条命</div>
+            <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.3)", marginTop: 5 }}>漏接或接炸弹扣命，坚持越久分数越高</div>
           </button>
         </div>
 
