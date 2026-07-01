@@ -66,7 +66,7 @@ src/
 │   ├── ArticlesPanel.jsx   # 文章列表面板（Markdown 渲染 + 评论）
 │   └── TrackView.jsx       # 页面访问埋点
 ├── db/
-│   ├── schema.js           # Drizzle 表定义（9 表）
+│   ├── schema.js           # Drizzle 表定义（10 表）
 │   └── index.js            # Neon HTTP 连接
 ├── lib/
 │   └── auth-check.js       # 数据库直查 githubUsername 判定管理员
@@ -109,7 +109,6 @@ src/
 - ghostty-blackhole (s0xDk/XboxNahida) 完整移植：48 步 Binet 形式测地线积分
 - 8 个吸积盘预设（PRESETS 数组）+ 14 个可调参数
 - `uBHMode` uniform 控制光线追踪/经典模式切换
-- `public/music/` 已 gitignore（本地文件不提交）
 - 手机端（<640px）跳过 WebGL，仅显示深色渐变
 
 ## 上传文件
@@ -121,7 +120,6 @@ src/
 ## Key patterns
 
 - `.env.local` 含真实密钥，已 gitignore
-- `public/music/` 已 gitignore（本地测试用）
 - Next.js 16 App Router 中 `params` 是 Promise，必须 `await params` 解构
 - 大文件上传需绕过中间件路径 `/admin`，否则中间件在 10MB 截断
 - CSS 全局 `nav` 样式会污染 admin 侧边栏 `<nav>`，需显式 reset

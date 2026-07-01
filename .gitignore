@@ -42,4 +42,3 @@ src/app/dev/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-public/music/

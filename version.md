@@ -1,5 +1,63 @@
 # Version History — canliu-personal-website
 
+## v3.3 (2026-06-30) — 音乐角 + Vercel Blob 存储
+
+**音乐管理系统：**
+| 功能 | 说明 |
+|------|------|
+| song 表 | 新增数据库表（title/artist/url/published），Drizzle schema |
+| Admin CRUD | /admin/music 管理页：上传本地文件 + 贴外部链接 |
+| 公开 API | /api/music 返回已发布歌曲列表 |
+| 大文件上传 | /api/upload-music 绕过 /admin 中间件 body size 限制 |
+
+**Vercel Blob 云端存储：**
+- 抛弃本地 `public/music/` 上传，改用 `@vercel/blob` SDK
+- `next.config.mjs` 配置 `serverActions.bodySizeLimit: "50mb"` + `middlewareClientMaxBodySize: "50mb"`
+- 需 `BLOB_READ_WRITE_TOKEN` 环境变量
+
+**MusicPlayer 组件：**
+- 歌单播放器面板 + 页面底部悬浮迷你控制条
+- 导航栏 "联系" 改为 "音乐"
+
+**附带修复：**
+- 自定义参数继承当前预设值，不再跳回默认
+- 星座连线 offset 修正 + 辉光效果
+- 全站 emoji 替换为 SVG 图标
+
+## v3.2 (2026-06-30) — 项目轨道面板完善
+
+| 改动 | 说明 |
+|------|------|
+| Markdown 渲染 | 项目详情支持 Markdown 内容展示 |
+| 行星小球 | 轨道式卡片增加行星装饰元素 |
+| 编辑优化 | ProjectForm 编辑器改进 |
+
+## v3.1 (2026-06-30) — 项目管理 + 账号密码登录
+
+**项目管理系统：**
+| 功能 | 说明 |
+|------|------|
+| project 表 | 数据库表（title/content/tags/link/published） |
+| Admin CRUD | /admin/projects 管理页：列表/新建/编辑/ProjectForm |
+| 公开 API | /api/projects 返回已发布项目列表 |
+| ProjectsPanel | 轨道式行星卡片展示，可展开详情 |
+
+**账号密码登录：**
+- 登录页底部隐藏凭据登录入口（`LOCAL_ADMIN_USER` / `LOCAL_ADMIN_PASS`）
+- `/api/admin/credential-login` 备用登录 API
+- 排版统一优化
+
+## v3.0 (2026-06-30) — WebGL 2 黑洞重写
+
+基于 ghostty-blackhole (s0xDk) 完整移植：
+- 原生 WebGL 2 替换 Three.js，48 步 Binet 形式测地线积分
+- 8 个吸积盘预设（Inferno/Gargantua/M87*/Quasar/Blazar 等），键盘 0-7 切换
+- 14 个可调盘参数（色温/倾角/半径/Doppler/Beaming 等）
+- Canvas 星云纹理 + 星座辉光连线
+- 鼠标拖拽/吸附/自动巡逻，滚轮调大小
+- 默认 Inferno 烈焰预设，吸附 20%，尺寸 0.7x
+- 手机端自动降级为深色渐变背景
+
 ## v2.9 (2026-06-28) — 个人面板 + 留言板系统
 
 **个人面板完善：** 头像(cat.jpg) / 名字 gch / 残留v枫楪 / 可编辑状态圆点 / 标签 / 个人简介 / 联系方式链接
