@@ -8,16 +8,19 @@ export default function StarCollector({ onBack }) {
   const loopRef = useRef(null);
   const cursorRef = useRef(null);
   const menuRef = useRef(null);
+  const countdownRef = useRef(0);
   const [mode, setMode] = useState(null);     // null=选择画面, "timed"=计时, "lives"=生命
   const [cursor, setCursor] = useState("default");
   useEffect(() => { cursorRef.current = setCursor; }, []);
 
   const startGame = useCallback((gameMode) => {
+    countdownRef.current = 3;
     setMode(gameMode);
     setCursor("none");
   }, []);
 
   const backToMenu = useCallback(() => {
+    countdownRef.current = 0;
     setMode(null);
     setCursor("default");
   }, []);
@@ -41,10 +44,11 @@ export default function StarCollector({ onBack }) {
 
     const s = {
       mode, score: 0, lives: 3, timeLeft: 60, gameOver: false, paused: false,
+      countdown: countdownRef.current,
       basketX: window.innerWidth / 2,
       items: [],
-      spawnTimer: 0, spawnGap: 80,
-      speedMul: 0.6,
+      spawnTimer: 0, spawnGap: 85,
+      speedMul: 0.5,
       keys: {},
       high: 0,
       comboFlash: 0,
@@ -52,6 +56,13 @@ export default function StarCollector({ onBack }) {
     };
     try { s.high = parseInt(localStorage.getItem("starCollectorHigh") || "0", 10) || 0; } catch { s.high = 0; }
     stateRef.current = s;
+
+    // 倒计时计时器
+    const cdTimer = s.countdown > 0 ? setInterval(() => {
+      s.countdown--;
+      countdownRef.current = s.countdown;
+      if (s.countdown <= 0) clearInterval(cdTimer);
+    }, 800) : null;
 
     const onMouse = (e) => { s.basketX = e.clientX; };
     const onTouch = (e) => { e.preventDefault(); s.basketX = e.touches[0].clientX; };
@@ -72,7 +83,7 @@ export default function StarCollector({ onBack }) {
         y: -20,
         type,
         vy: (1.5 + Math.random() * 1.8) * s.speedMul,
-        r: type === "bomb" ? 14 : type === "bstar" ? 12 : 16,
+        r: type === "bomb" ? 17 : type === "bstar" ? 15 : 19,
         glow: Math.random() * 0.4 + 0.6,
       };
     }
@@ -154,18 +165,7 @@ export default function StarCollector({ onBack }) {
     function loop() {
       loopRef.current = loop;
       if (stateRef.current !== s) return;
-      if (s.gameOver || s.paused) { requestAnimationFrame(loop); return; }
-
-      const kx = (s.keys["ArrowLeft"] || s.keys["a"] || s.keys["A"]) ? -7
-        : (s.keys["ArrowRight"] || s.keys["d"] || s.keys["D"]) ? 7 : 0;
-      if (kx) s.basketX += kx;
-
-      // 计时模式：倒计时
-      if (s.mode === "timed") {
-        const elapsed = (performance.now() - s.startTime) / 1000;
-        s.timeLeft = Math.max(0, 60 - elapsed);
-        if (s.timeLeft <= 0) s.gameOver = true;
-      }
+      if (s.paused) { requestAnimationFrame(loop); return; }
 
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       ctx.fillStyle = "#050510";
@@ -179,62 +179,16 @@ export default function StarCollector({ onBack }) {
         ctx.fill();
       }
 
-      s.spawnTimer++;
-      if (s.spawnTimer >= s.spawnGap) { s.spawnTimer = 0; s.items.push(spawnItem()); }
-
-      for (let i = s.items.length - 1; i >= 0; i--) {
-        const it = s.items[i];
-        it.y += it.vy;
-        drawItem(it);
-        if (checkHit(it)) {
-          if (it.type === "bomb") {
-            if (s.mode === "lives") { s.lives--; if (s.lives <= 0) s.gameOver = true; }
-            else { s.score = Math.max(0, s.score - 3); }
-            s.comboFlash = 12;
-          } else {
-            s.score += it.type === "bstar" ? 3 : 1;
-            s.comboFlash = 8;
-            s.speedMul = 0.6 + Math.floor(Math.max(0, s.score) / 8) * 0.3;
-            s.spawnGap = Math.max(25, 80 - Math.floor(Math.max(0, s.score) / 8) * 4);
-          }
-          s.items.splice(i, 1);
-          continue;
-        }
-        if (it.y > window.innerHeight + 30) {
-          if (it.type !== "bomb" && s.mode === "lives") { s.lives--; if (s.lives <= 0) s.gameOver = true; }
-          s.items.splice(i, 1);
-        }
+      // 开场倒计时
+      if (s.countdown > 0) {
+        ctx.textAlign = "center";
+        const pulse = 1 + (1 - (s.countdown % 1)) * 0.3;
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.font = `600 ${80 * pulse}px "PingFang SC","Microsoft YaHei UI",sans-serif`;
+        ctx.fillText(s.countdown > 1 ? String(Math.ceil(s.countdown - 1)) : "GO!", window.innerWidth / 2, window.innerHeight / 2 + 16);
+        requestAnimationFrame(loop);
+        return;
       }
-
-      drawBasket(s.basketX);
-      if (s.comboFlash > 0) {
-        s.comboFlash--;
-        const bx = Math.max(BASKET_W / 2, Math.min(window.innerWidth - BASKET_W / 2, s.basketX));
-        const by = window.innerHeight - 80 + BASKET_H / 2;
-        ctx.fillStyle = `rgba(200,220,255,${s.comboFlash / 12 * 0.3})`;
-        ctx.beginPath();
-        ctx.arc(bx, by, BASKET_W * 0.4 + (12 - s.comboFlash) * 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // HUD
-      ctx.textAlign = "center";
-      ctx.fillStyle = "rgba(255,255,255,0.9)";
-      ctx.font = "600 36px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      ctx.fillText(s.score, window.innerWidth / 2, 70);
-      ctx.font = "400 15px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      if (s.mode === "timed") {
-        ctx.fillStyle = s.timeLeft <= 10 ? "rgba(255,100,100,0.9)" : "rgba(255,255,255,0.45)";
-        ctx.fillText(s.timeLeft.toFixed(1) + "s", window.innerWidth / 2, 96);
-      } else {
-        ctx.fillStyle = s.lives <= 1 ? "rgba(255,100,100,0.9)" : "rgba(255,255,255,0.45)";
-        ctx.fillText("o".repeat(Math.max(0, s.lives)), window.innerWidth / 2, 96);
-      }
-      ctx.fillStyle = "rgba(255,255,255,0.2)";
-      ctx.font = "400 12px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      ctx.fillText("HIGH: " + s.high, window.innerWidth / 2, 118);
-      ctx.fillText("移动鼠标或 A/D / ← → 接住星星", window.innerWidth / 2, window.innerHeight - 24);
-      ctx.textAlign = "left";
 
       if (s.gameOver) {
         const finalScore = s.score;
@@ -258,14 +212,92 @@ export default function StarCollector({ onBack }) {
           menuRef.current?.();
         };
         canvas.addEventListener("click", goMenu);
+        requestAnimationFrame(loop);
+        return;
       }
 
-      if (!s.gameOver) requestAnimationFrame(loop);
+      const kx = (s.keys["ArrowLeft"] || s.keys["a"] || s.keys["A"]) ? -7
+        : (s.keys["ArrowRight"] || s.keys["d"] || s.keys["D"]) ? 7 : 0;
+      if (kx) s.basketX += kx;
+
+      // 计时模式：倒计时
+      if (s.mode === "timed") {
+        const elapsed = (performance.now() - s.startTime) / 1000;
+        s.timeLeft = Math.max(0, 60 - elapsed);
+        if (s.timeLeft <= 0) s.gameOver = true;
+      }
+
+      s.spawnTimer++;
+      if (s.spawnTimer >= s.spawnGap) { s.spawnTimer = 0; s.items.push(spawnItem()); }
+
+      for (let i = s.items.length - 1; i >= 0; i--) {
+        const it = s.items[i];
+        it.y += it.vy;
+        drawItem(it);
+        if (checkHit(it)) {
+          if (it.type === "bomb") {
+            if (s.mode === "lives") { s.lives--; if (s.lives <= 0) s.gameOver = true; }
+            else { s.score = Math.max(0, s.score - 3); }
+            s.comboFlash = 12;
+          } else {
+            s.score += it.type === "bstar" ? 3 : 1;
+            s.comboFlash = 8;
+            s.speedMul = 0.5 + Math.floor(Math.max(0, s.score) / 12) * 0.2;
+            s.spawnGap = Math.max(35, 85 - Math.floor(Math.max(0, s.score) / 12) * 4);
+          }
+          s.items.splice(i, 1);
+          continue;
+        }
+        if (it.y > window.innerHeight + 30) {
+          if (it.type !== "bomb" && s.mode === "lives") { s.lives--; if (s.lives <= 0) s.gameOver = true; }
+          s.items.splice(i, 1);
+        }
+      }
+
+      drawBasket(s.basketX);
+      if (s.comboFlash > 0) {
+        s.comboFlash--;
+        const bx = Math.max(BASKET_W / 2, Math.min(window.innerWidth - BASKET_W / 2, s.basketX));
+        const by = window.innerHeight - 80 + BASKET_H / 2;
+        ctx.fillStyle = `rgba(200,220,255,${s.comboFlash / 12 * 0.3})`;
+        ctx.beginPath();
+        ctx.arc(bx, by, BASKET_W * 0.4 + (12 - s.comboFlash) * 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // HUD
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.font = "400 13px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      ctx.fillText("分数", window.innerWidth / 2, 34);
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = "600 40px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      ctx.fillText(s.score, window.innerWidth / 2, 72);
+      ctx.font = "400 16px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      if (s.mode === "timed") {
+        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        ctx.fillText("时间", window.innerWidth / 2, 108);
+        ctx.fillStyle = s.timeLeft <= 10 ? "rgba(255,100,100,0.9)" : "rgba(255,255,255,0.55)";
+        ctx.fillText(s.timeLeft.toFixed(1) + "s", window.innerWidth / 2, 126);
+      } else {
+        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        ctx.fillText("生命", window.innerWidth / 2, 108);
+        ctx.fillStyle = s.lives <= 1 ? "rgba(255,100,100,0.9)" : "rgba(255,255,255,0.55)";
+        ctx.fillText("o".repeat(Math.max(0, s.lives)), window.innerWidth / 2, 126);
+      }
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      ctx.font = "400 12px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      ctx.fillText("最高: " + s.high, window.innerWidth / 2, 150);
+      ctx.fillText("移动鼠标或 A/D / ← → 接住星星", window.innerWidth / 2, window.innerHeight - 24);
+      ctx.textAlign = "left";
+
+      requestAnimationFrame(loop);
     }
 
     requestAnimationFrame(loop);
 
     return () => {
+      if (cdTimer) clearInterval(cdTimer);
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMouse);
       window.removeEventListener("touchmove", onTouch);
