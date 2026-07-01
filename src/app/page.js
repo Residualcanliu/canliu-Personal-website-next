@@ -14,6 +14,7 @@ const PAGES = [
   { id: "or", label: "项目" },
   { id: "ly", label: "文章" },
   { id: "cy", label: "音乐" },
+  { id: "sg", label: "游戏" },
 ];
 
 const CORNERS = [
@@ -245,7 +246,7 @@ export default function Home() {
 
         <div className="links">
           {PAGES.map((p) => (
-            <a key={p.id} onClick={() => (p.id === "home" ? hide() : show(p.id))}>
+            <a key={p.id} onClick={() => { if (p.id === "home") hide(); else if (p.id === "sg") router.push("/sagittarius"); else show(p.id); }}>
               {p.label}
             </a>
           ))}
