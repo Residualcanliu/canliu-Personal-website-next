@@ -43,11 +43,15 @@ export default function Home() {
   const [songIdx, setSongIdx] = useState(-1);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
+  const preloadRef = useRef(null); // 预加载下一首
+
   useEffect(() => {
     fetch("/api/music").then(r => r.json()).then(setSongs).catch(() => {});
   }, []);
+
+  // 主播放
   useEffect(() => {
-    if (!audioRef.current) audioRef.current = new Audio();
+    if (!audioRef.current) { audioRef.current = new Audio(); audioRef.current.preload = "auto"; }
     const a = audioRef.current;
     if (songIdx >= 0 && songs[songIdx]) {
       a.src = songs[songIdx].url;
@@ -56,6 +60,15 @@ export default function Home() {
     const onEnd = () => { setSongIdx(i => (i + 1) % songs.length || 0); };
     a.addEventListener("ended", onEnd);
     return () => a.removeEventListener("ended", onEnd);
+  }, [songIdx, songs]);
+
+  // 预加载下一首（后台缓冲）
+  useEffect(() => {
+    if (songs.length < 2 || songIdx < 0) return;
+    const nextIdx = (songIdx + 1) % songs.length;
+    if (!preloadRef.current) preloadRef.current = new Audio();
+    preloadRef.current.src = songs[nextIdx].url;
+    preloadRef.current.preload = "auto";
   }, [songIdx, songs]);
   const musicCtrl = {
     play: (idx) => { setSongIdx(idx); },
