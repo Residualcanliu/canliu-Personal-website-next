@@ -37,6 +37,31 @@ export default function StarCollector({ onBack }) {
 
     const BASKET_W = 130, BASKET_H = 30;
 
+    // ── 音效（Web Audio API 合成）──
+    let audioCtx = null;
+    const getAudioCtx = () => {
+      if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} }
+      if (audioCtx?.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    };
+    const playSfx = (freq, type, dur, vol, glide) => {
+      const ac = getAudioCtx();
+      if (!ac) return;
+      const t = ac.currentTime;
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t);
+      if (glide) osc.frequency.linearRampToValueAtTime(freq * glide, t + dur);
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.connect(gain); gain.connect(ac.destination);
+      osc.start(t); osc.stop(t + dur);
+    };
+    const sfxStar = () => { playSfx(880, "sine", 0.12, 0.18, 1.3); };
+    const sfxBlue = () => { playSfx(660, "sine", 0.2, 0.22, 1.6); setTimeout(() => playSfx(1100, "sine", 0.15, 0.14, 1.2), 80); };
+    const sfxBomb = () => { playSfx(100, "sawtooth", 0.25, 0.2, 0.5); };
+
     const s = {
       mode, score: 0, lives: 3, timeLeft: 60, gameOver: false, paused: false,
       countdown: countdownRef.current,
@@ -226,10 +251,12 @@ export default function StarCollector({ onBack }) {
         drawItem(it);
         if (checkHit(it)) {
           if (it.type === "bomb") {
+            sfxBomb();
             if (s.mode === "lives") { s.lives--; if (s.lives <= 0) s.gameOver = true; }
             else { s.score = Math.max(0, s.score - 3); }
             s.comboFlash = 12;
           } else {
+            if (it.type === "bstar") sfxBlue(); else sfxStar();
             s.score += it.type === "bstar" ? 3 : 1;
             s.comboFlash = 8;
             s.speedMul = 0.5 + Math.floor(Math.max(0, s.score) / 12) * 0.2;
@@ -288,6 +315,7 @@ export default function StarCollector({ onBack }) {
 
     return () => {
       if (cdTimer) clearInterval(cdTimer);
+      if (audioCtx) { audioCtx.close(); audioCtx = null; }
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
