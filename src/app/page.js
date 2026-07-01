@@ -20,6 +20,7 @@ const CORNERS = [
   { cls: "or", page: "or",   title: "猎户座 · 项目" },
   { cls: "ly", page: "ly",   title: "天琴座 · 文章" },
   { cls: "cy", page: "cy",   title: "天鹅座 · 音乐" },
+  { cls: "sg", page: "sg",   title: "人马座 · 小游戏" },
 ];
 
 export default function Home() {
@@ -302,6 +303,15 @@ export default function Home() {
       <div className={"panel" + (current === "cy" ? " on" : "")} id="pn-cy">
         <button className="close" onClick={hide}>&times;</button>
         <MusicPlayer onBack={hide} songs={songs} songIdx={songIdx} playing={playing} musicCtrl={musicCtrl} />
+      </div>
+
+      <div className={"panel" + (current === "sg" ? " on" : "")} id="pn-sg">
+        <button className="close" onClick={hide}>&times;</button>
+        <div style={{ textAlign: "center", color: "#fff" }}>
+          <h2 style={{ fontSize: "1.6rem", fontWeight: 500, marginBottom: 12 }}>人马座 · 小游戏</h2>
+          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.9rem" }}>即将上线...</p>
+        </div>
+        <a className="home-btn" onClick={hide}>← 返回主页</a>
       </div>
 
       <div className={"panel" + (current === "home" ? " on" : "")} id="pn-home">

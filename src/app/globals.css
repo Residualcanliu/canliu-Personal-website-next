@@ -18,6 +18,7 @@ nav .links a:hover{color:var(--nav-fg);background:var(--nav-hover)}
 .cz{position:fixed;z-index:50;width:15vmin;height:15vmin;cursor:pointer;transition:opacity .5s}
 .cz:hover{opacity:1!important}.cz.le{top:15vh;left:12vw}.cz.or{top:16vh;right:18vw}
 .cz.ly{bottom:14vh;left:8vw}.cz.cy{bottom:11vh;right:14vw}
+.cz.sg{top:43vh;left:10vw}
 .panel{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:80;background:rgba(2,2,12,.65);
   backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;flex-direction:column;align-items:center;justify-content:center;
   opacity:0;pointer-events:none;transition:opacity .5s;color:#fff;font-size:1.4rem}
