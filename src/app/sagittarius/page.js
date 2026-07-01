@@ -51,21 +51,21 @@ function Leaderboard() {
 
   return (
     <div style={{
-      position: "fixed", top: 0, right: 0, width: 290, height: "100vh",
+      position: "fixed", top: 0, right: 0, width: 360, height: "100vh",
       background: "rgba(4,4,16,0.85)", borderLeft: "1px solid rgba(255,255,255,0.06)",
       zIndex: 10, color: "#fff", overflowY: "auto",
       fontFamily: "\"PingFang SC\",\"Microsoft YaHei UI\",sans-serif",
-      padding: "16px 14px",
+      padding: "20px 18px",
     }}>
-      <div style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: 10, color: "rgba(255,255,255,0.7)" }}>
+      <div style={{ fontSize: "1.15rem", fontWeight: 600, marginBottom: 14, color: "rgba(255,255,255,0.75)" }}>
         排行榜
       </div>
 
       {/* 模式切换 */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
         {modes.map(m => (
           <button key={m.id} onClick={() => { setSelMode(m.id); fetchScores(m.id); }} style={{
-            flex: 1, padding: "4px 0", fontSize: "0.7rem", borderRadius: 4, cursor: "pointer",
+            flex: 1, padding: "7px 0", fontSize: "0.82rem", borderRadius: 6, cursor: "pointer",
             color: selMode === m.id ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.3)",
             background: selMode === m.id ? "rgba(100,160,255,0.15)" : "rgba(255,255,255,0.03)",
             border: selMode === m.id ? "1px solid rgba(100,160,255,0.25)" : "1px solid rgba(255,255,255,0.05)",
@@ -74,17 +74,17 @@ function Leaderboard() {
       </div>
 
       {scores.length === 0 ? (
-        <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.2)", textAlign: "center", padding: 20 }}>
+        <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.2)", textAlign: "center", padding: 20 }}>
           暂无记录
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           {scores.map((row, i) => {
             const cfgStr = selMode === "abyss" ? fmtCfg(row) : null;
             return (
               <div key={row.id} style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "5px 8px",
-                borderRadius: 6, fontSize: "0.72rem",
+                display: "flex", alignItems: "center", gap: 10, padding: "7px 10px",
+                borderRadius: 6, fontSize: "0.85rem",
                 background: i < 3 ? "rgba(255,255,255,0.03)" : "transparent",
               }}>
                 <span style={{
@@ -96,7 +96,7 @@ function Leaderboard() {
                 </span>
                 <span style={{ color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>{row.score}</span>
                 {cfgStr && (
-                  <div style={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.2)", marginTop: 1, wordBreak: "break-all" }}>
+                  <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.22)" }}>
                     {cfgStr}
                   </div>
                 )}
