@@ -256,7 +256,8 @@ export default function Home() {
 
       {CORNERS.map((cz) => (
         <div key={cz.cls} className={`cz ${cz.cls}`} title={cz.title}
-          onClick={() => cz.page === "sg" ? router.push("/sagittarius") : show(cz.page)} />
+          onClick={() => cz.page === "sg" ? router.push("/sagittarius") : show(cz.page)}
+          style={cz.cls === "sg" ? { border: "1px solid rgba(180,210,255,0.25)", borderRadius: "50%" } : undefined} />
       ))}
 
       <div className={"panel" + (current === "profile" ? " on" : "")} id="pn-profile">

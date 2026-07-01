@@ -186,20 +186,23 @@ export default function StarCollector({ onBack }) {
         drawItem(it);
         if (checkHit(it)) {
           if (it.type === "bomb") {
-            s.lives--;
+            if (s.mode === "lives") { s.lives--; if (s.lives <= 0) s.gameOver = true; }
+            else { s.score = Math.max(0, s.score - 3); }
             s.comboFlash = 12;
-            if (s.lives <= 0) s.gameOver = true;
           } else {
             s.score += it.type === "bstar" ? 3 : 1;
             s.comboFlash = 8;
-            s.speedMul = 1 + Math.floor(s.score / 10) * 0.35;
-            s.spawnGap = Math.max(18, 55 - Math.floor(s.score / 10) * 4);
+            s.speedMul = 1 + Math.floor(Math.max(0, s.score) / 10) * 0.35;
+            s.spawnGap = Math.max(18, 55 - Math.floor(Math.max(0, s.score) / 10) * 4);
           }
           s.items.splice(i, 1);
           continue;
         }
         if (it.y > window.innerHeight + 30) {
-          if (it.type !== "bomb") { s.lives--; if (s.lives <= 0) s.gameOver = true; }
+          if (it.type !== "bomb") {
+            if (s.mode === "lives") { s.lives--; if (s.lives <= 0) s.gameOver = true; }
+            else { s.score = Math.max(0, s.score - (it.type === "bstar" ? 3 : 1)); }
+          }
           s.items.splice(i, 1);
         }
       }
