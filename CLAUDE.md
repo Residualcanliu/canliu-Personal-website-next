@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Next.js 16 + React 19 全栈个人网站。前端原生 WebGL 2 黑洞引力透镜（Schwarzschild 光线追踪）+ 星座星图，后端 Neon PostgreSQL + Drizzle ORM + Auth.js GitHub OAuth，Vercel + Vercel Blob 部署。
+Next.js 16 + React 19 全栈个人网站。前端原生 WebGL 2 黑洞引力透镜（Schwarzschild 光线追踪）+ 星座星图 + Canvas 星点收集游戏，后端 Neon PostgreSQL + Drizzle ORM + Auth.js GitHub OAuth，Vercel + Vercel Blob 部署。
 
 线上地址：`https://canliuweb.cc.cd`
 
@@ -30,6 +30,8 @@ src/
 │   ├── layout.js            # 根布局 + TrackView 全局埋点
 │   ├── page.js              # 主页面 — BlackHole + 导航 + 面板 + 黑洞参数 + 音乐悬浮条
 │   ├── Guestbook.jsx        # 留言板组件
+│   ├── sagittarius/
+│   │   └── page.js          # 人马座游戏页面（独立路由, Leaderboard 面板）
 │   ├── admin/               # 后台管理
 │   │   ├── layout.js        # 侧边栏导航（8 板块）
 │   │   ├── login/           # 登录页（GitHub OAuth + 隐藏凭据登录）
@@ -58,15 +60,17 @@ src/
 │       ├── upload-music/        # 大文件上传（绕过 /admin 中间件 body 限制）
 │       ├── messages/            # 公开留言
 │       ├── settings/            # 公开设置
+│       ├── game-scores/         # 游戏排行榜（GET 排行 / POST 提交）
 │       └── track/               # 埋点
 ├── components/
 │   ├── BlackHole.jsx       # 原生 WebGL 2 + ghostty-blackhole 48 步 Schwarzschild 光线追踪
 │   ├── ProjectsPanel.jsx   # 轨道式行星卡片 + 详情展开（Markdown 渲染）
 │   ├── MusicPlayer.jsx     # 音乐播放器面板
 │   ├── ArticlesPanel.jsx   # 文章列表面板（Markdown 渲染 + 评论）
+│   ├── StarCollector.jsx   # 星点收集游戏（Canvas, 3 模式, 技能/狂热系统）
 │   └── TrackView.jsx       # 页面访问埋点
 ├── db/
-│   ├── schema.js           # Drizzle 表定义（10 表）
+│   ├── schema.js           # Drizzle 表定义（11 表）
 │   └── index.js            # Neon HTTP 连接
 ├── lib/
 │   └── auth-check.js       # 数据库直查 githubUsername 判定管理员
@@ -89,6 +93,7 @@ src/
 | `visitLog` | 访问日志（path/ip/ua/referer） |
 | `message` | 留言板（name/content/msgStatus/approved/ip） |
 | `setting` | 键值对设置（key/value） |
+| `gameScore` | 游戏排行榜（mode/score/playerName/config） |
 
 **连接方式：** `@neondatabase/serverless` HTTP driver，drizzle-kit 管理 migration。
 
