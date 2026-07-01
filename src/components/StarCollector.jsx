@@ -21,6 +21,7 @@ export default function StarCollector({ onBack }) {
 
   const backToMenu = useCallback(() => {
     countdownRef.current = 0;
+    document.exitPointerLock?.();
     setMode(null);
     setCursor("default");
   }, []);
@@ -53,6 +54,7 @@ export default function StarCollector({ onBack }) {
       high: 0,
       comboFlash: 0,
       startTime: performance.now(),
+      pointerLocked: false,
     };
     try { s.high = parseInt(localStorage.getItem("starCollectorHigh") || "0", 10) || 0; } catch { s.high = 0; }
     stateRef.current = s;
@@ -185,10 +187,15 @@ export default function StarCollector({ onBack }) {
         const pulse = 1 + (1 - (s.countdown % 1)) * 0.3;
         ctx.fillStyle = "rgba(255,255,255,0.9)";
         ctx.font = `600 ${80 * pulse}px "PingFang SC","Microsoft YaHei UI",sans-serif`;
-        ctx.fillText(s.countdown > 1 ? String(Math.ceil(s.countdown - 1)) : "GO!", window.innerWidth / 2, window.innerHeight / 2 + 16);
+        ctx.fillText(String(Math.ceil(s.countdown)), window.innerWidth / 2, window.innerHeight / 2 + 16);
         requestAnimationFrame(loop);
         return;
       }
+      // 倒计时结束，锁定鼠标
+      if (!s.pointerLocked && document.pointerLockElement !== canvas) {
+        canvas.requestPointerLock?.();
+      }
+      s.pointerLocked = true;
 
       if (s.gameOver) {
         const finalScore = s.score;
@@ -209,6 +216,7 @@ export default function StarCollector({ onBack }) {
 
         const goMenu = () => {
           canvas.removeEventListener("click", goMenu);
+          document.exitPointerLock?.();
           menuRef.current?.();
         };
         canvas.addEventListener("click", goMenu);
@@ -298,6 +306,7 @@ export default function StarCollector({ onBack }) {
 
     return () => {
       if (cdTimer) clearInterval(cdTimer);
+      document.exitPointerLock?.();
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMouse);
       window.removeEventListener("touchmove", onTouch);
