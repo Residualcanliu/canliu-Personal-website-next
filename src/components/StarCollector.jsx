@@ -267,7 +267,6 @@ export default function StarCollector({ onBack }) {
           continue;
         }
         if (it.y > window.innerHeight + 30) {
-          if (it.type !== "bomb" && s.mode === "lives") { s.lives--; if (s.lives <= 0) s.gameOver = true; }
           s.items.splice(i, 1);
         }
       }
@@ -371,7 +370,7 @@ export default function StarCollector({ onBack }) {
           </button>
           <button onClick={() => startGame("lives")} style={modeBtn}>
             <div style={{ fontSize: "1.35rem", fontWeight: 500 }}>生命模式 — 3 条命</div>
-            <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.3)", marginTop: 5 }}>漏接或接炸弹扣命，坚持越久分数越高</div>
+            <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.3)", marginTop: 5 }}>接炸弹扣命，漏接不扣分，坚持越久分数越高</div>
           </button>
         </div>
 
