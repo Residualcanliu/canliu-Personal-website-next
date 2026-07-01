@@ -6,23 +6,18 @@ export default function StarCollector({ onBack }) {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
   const loopRef = useRef(null);
-  const cursorRef = useRef(null);
   const menuRef = useRef(null);
   const countdownRef = useRef(0);
   const [mode, setMode] = useState(null);     // null=选择画面, "timed"=计时, "lives"=生命
-  const [cursor, setCursor] = useState("default");
-  useEffect(() => { cursorRef.current = setCursor; }, []);
 
   const startGame = useCallback((gameMode) => {
     countdownRef.current = 3;
     setMode(gameMode);
-    setCursor("none");
   }, []);
 
   const backToMenu = useCallback(() => {
     countdownRef.current = 0;
     setMode(null);
-    setCursor("default");
   }, []);
   useEffect(() => { menuRef.current = backToMenu; }, [backToMenu]);
 
@@ -64,17 +59,10 @@ export default function StarCollector({ onBack }) {
       if (s.countdown <= 0) clearInterval(cdTimer);
     }, 800) : null;
 
-    const onMouse = (e) => {
-      s.basketX += e.movementX * 1.2;
-      s.basketX = Math.max(BASKET_W / 2, Math.min(window.innerWidth - BASKET_W / 2, s.basketX));
-    };
-    const onTouch = (e) => { e.preventDefault(); s.basketX = e.touches[0].clientX; };
     const onKeyDown = (e) => { s.keys[e.key] = true; };
     const onKeyUp = (e) => { s.keys[e.key] = false; };
 
     window.addEventListener("resize", resize);
-    window.addEventListener("mousemove", onMouse);
-    window.addEventListener("touchmove", onTouch, { passive: false });
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
 
@@ -196,7 +184,6 @@ export default function StarCollector({ onBack }) {
       if (s.gameOver) {
         const finalScore = s.score;
         if (finalScore > s.high) { s.high = finalScore; try { localStorage.setItem("starCollectorHigh", String(s.high)); } catch {} }
-        cursorRef.current?.("default");
         ctx.fillStyle = "rgba(2,2,16,0.7)";
         ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
         ctx.textAlign = "center";
@@ -219,8 +206,8 @@ export default function StarCollector({ onBack }) {
         return;
       }
 
-      const kx = (s.keys["ArrowLeft"] || s.keys["a"] || s.keys["A"]) ? -7
-        : (s.keys["ArrowRight"] || s.keys["d"] || s.keys["D"]) ? 7 : 0;
+      const kx = (s.keys["ArrowLeft"] || s.keys["a"] || s.keys["A"]) ? -14
+        : (s.keys["ArrowRight"] || s.keys["d"] || s.keys["D"]) ? 14 : 0;
       if (kx) s.basketX += kx;
 
       // 计时模式：倒计时
@@ -291,7 +278,7 @@ export default function StarCollector({ onBack }) {
       ctx.fillStyle = "rgba(255,255,255,0.18)";
       ctx.font = "400 12px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
       ctx.fillText("最高: " + s.high, window.innerWidth / 2, 150);
-      ctx.fillText("移动鼠标或 A/D / ← → 接住星星", window.innerWidth / 2, window.innerHeight - 24);
+      ctx.fillText("按 A/D 或 ← → 键移动篮子", window.innerWidth / 2, window.innerHeight - 24);
       ctx.textAlign = "left";
 
       requestAnimationFrame(loop);
@@ -302,8 +289,6 @@ export default function StarCollector({ onBack }) {
     return () => {
       if (cdTimer) clearInterval(cdTimer);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("mousemove", onMouse);
-      window.removeEventListener("touchmove", onTouch);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       s.paused = true;
@@ -329,7 +314,7 @@ export default function StarCollector({ onBack }) {
           人马座 · 星点收集
         </div>
         <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.35)", marginBottom: 28 }}>
-          移动鼠标或键盘 A/D 左右键接住下落星星
+          按 A/D 或 ← → 键移动篮子，接住下落星星
         </div>
 
         {/* 物品说明 */}
@@ -370,7 +355,7 @@ export default function StarCollector({ onBack }) {
   return (
     <canvas
       ref={canvasRef}
-      style={{ display: "block", position: "fixed", inset: 0, cursor: cursor }}
+      style={{ display: "block", position: "fixed", inset: 0 }}
     />
   );
 }
