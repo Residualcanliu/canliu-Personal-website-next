@@ -21,7 +21,6 @@ export default function StarCollector({ onBack }) {
 
   const backToMenu = useCallback(() => {
     countdownRef.current = 0;
-    document.exitPointerLock?.();
     setMode(null);
     setCursor("default");
   }, []);
@@ -54,7 +53,6 @@ export default function StarCollector({ onBack }) {
       high: 0,
       comboFlash: 0,
       startTime: performance.now(),
-      pointerLocked: false,
     };
     try { s.high = parseInt(localStorage.getItem("starCollectorHigh") || "0", 10) || 0; } catch { s.high = 0; }
     stateRef.current = s;
@@ -66,16 +64,21 @@ export default function StarCollector({ onBack }) {
       if (s.countdown <= 0) clearInterval(cdTimer);
     }, 800) : null;
 
-    const onMouse = (e) => { s.basketX = e.clientX; };
+    let mouseIn = true;
+    const onMouse = (e) => { if (mouseIn) s.basketX = e.clientX; };
     const onTouch = (e) => { e.preventDefault(); s.basketX = e.touches[0].clientX; };
     const onKeyDown = (e) => { s.keys[e.key] = true; };
     const onKeyUp = (e) => { s.keys[e.key] = false; };
+    const onMouseLeave = () => { mouseIn = false; };
+    const onMouseEnter = () => { mouseIn = true; };
 
     window.addEventListener("resize", resize);
     window.addEventListener("mousemove", onMouse);
     window.addEventListener("touchmove", onTouch, { passive: false });
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
+    document.addEventListener("mouseleave", onMouseLeave);
+    document.addEventListener("mouseenter", onMouseEnter);
 
     function spawnItem() {
       const types = ["star", "star", "star", "star", "star", "bstar", "bstar", "bomb"];
@@ -191,11 +194,6 @@ export default function StarCollector({ onBack }) {
         requestAnimationFrame(loop);
         return;
       }
-      // 倒计时结束，锁定鼠标
-      if (!s.pointerLocked && document.pointerLockElement !== canvas) {
-        canvas.requestPointerLock?.();
-      }
-      s.pointerLocked = true;
 
       if (s.gameOver) {
         const finalScore = s.score;
@@ -216,7 +214,6 @@ export default function StarCollector({ onBack }) {
 
         const goMenu = () => {
           canvas.removeEventListener("click", goMenu);
-          document.exitPointerLock?.();
           menuRef.current?.();
         };
         canvas.addEventListener("click", goMenu);
@@ -306,12 +303,13 @@ export default function StarCollector({ onBack }) {
 
     return () => {
       if (cdTimer) clearInterval(cdTimer);
-      document.exitPointerLock?.();
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMouse);
       window.removeEventListener("touchmove", onTouch);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
+      document.removeEventListener("mouseleave", onMouseLeave);
+      document.removeEventListener("mouseenter", onMouseEnter);
       s.paused = true;
     };
   }, [mode]);
