@@ -134,7 +134,7 @@ export default function StarCollector({ onBack, onModeChange }) {
       // 狂热
       feverProgress: 0, feverMax: 30, feverActive: false, feverEnd: 0,
       // 排行榜提交
-      submitPhase: 0, playerName: "", nameInput: "", submitMsg: "",
+      submitPhase: 0, playerName: "", nameInput: "", submitMsg: "", submitConflict: false,
     };
     const highKey = "starCollectorHigh_" + (mode === "abyss" ? "abyss" : mode);
     try { s.high = parseInt(localStorage.getItem(highKey) || "0", 10) || 0; } catch { s.high = 0; }
@@ -145,14 +145,27 @@ export default function StarCollector({ onBack, onModeChange }) {
       if (s.countdown <= 0) clearInterval(cdTimer);
     }, 800) : null;
 
+    const doSubmit = (overwrite) => {
+      const name = s.nameInput.trim() || "匿名";
+      s.playerName = name;
+      const cfgPayload = s.abyss ? { basketW:ABYSS_PRESETS.basketW.vals[cfg.basketW], fallSpeed:ABYSS_PRESETS.fallSpeed.vals[cfg.fallSpeed], moveSpeed:ABYSS_PRESETS.moveSpeed.vals[cfg.moveSpeed], starSize:ABYSS_PRESETS.starSize.vals[cfg.starSize] } : null;
+      fetch("/api/game-scores", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ mode:s.mode, score:s.score, playerName:name, config:cfgPayload, overwrite }) })
+        .then(async r => {
+          const d = await r.json();
+          if (r.status === 409) { s.submitConflict = true; }
+          else { s.submitPhase = 2; s.submitConflict = false; s.submitMsg = d.overwritten ? "成绩已覆盖！" : "上传成功！"; }
+        }).catch(() => { s.submitMsg = "网络错误"; s.submitPhase = 2; });
+    };
+
     const onKeyDown = (e) => {
       if (s.gameOver && s.submitPhase === 1) {
-        if (e.key === "Enter") {
-          const name = s.nameInput.trim() || "匿名";
-          s.playerName = name; s.submitPhase = 2;
-          fetch("/api/game-scores", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ mode:s.mode, score:s.score, playerName:name, config: s.abyss ? { basketW:ABYSS_PRESETS.basketW.vals[cfg.basketW], fallSpeed:ABYSS_PRESETS.fallSpeed.vals[cfg.fallSpeed], moveSpeed:ABYSS_PRESETS.moveSpeed.vals[cfg.moveSpeed], starSize:ABYSS_PRESETS.starSize.vals[cfg.starSize] } : null }) })
-            .then(r=>r.json()).then(d => { s.submitMsg = "上传成功！"; }).catch(() => { s.submitMsg = "网络错误"; });
-        } else if (e.key === "Backspace") { s.nameInput = s.nameInput.slice(0,-1); }
+        if (s.submitConflict) {
+          if (e.key === "Enter" || e.key === "y" || e.key === "Y") { doSubmit(true); }
+          else if (e.key === "Escape" || e.key === "n" || e.key === "N") { s.submitConflict = false; }
+          return;
+        }
+        if (e.key === "Enter") { doSubmit(false); }
+        else if (e.key === "Backspace") { s.nameInput = s.nameInput.slice(0,-1); }
         else if (e.key.length === 1 && s.nameInput.length < 12) { s.nameInput += e.key; }
         return;
       }
@@ -347,13 +360,21 @@ export default function StarCollector({ onBack, onModeChange }) {
           };
           canvas.addEventListener("click", clickSubmit);
         } else if (s.submitPhase === 1) {
-          // 输入名字
-          ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "600 28px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-          ctx.fillText("上传成绩 — 输入名字", window.innerWidth / 2, window.innerHeight / 2 - 60);
-          ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.font = "400 16px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-          ctx.fillText(s.nameInput + (Math.floor(performance.now() / 500) % 2 ? "|" : " "), window.innerWidth / 2, window.innerHeight / 2 - 10);
-          ctx.fillStyle = "rgba(255,255,255,0.25)"; ctx.font = "400 12px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-          ctx.fillText("输入后按 Enter 提交", window.innerWidth / 2, window.innerHeight / 2 + 20);
+          if (s.submitConflict) {
+            // 同名冲突确认
+            ctx.fillStyle = "rgba(255,180,60,0.9)"; ctx.font = "600 22px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+            ctx.fillText("名字已存在，是否覆盖？", window.innerWidth / 2, window.innerHeight / 2 - 50);
+            ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.font = "400 14px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+            ctx.fillText("Enter/Y 覆盖    N/Esc 取消", window.innerWidth / 2, window.innerHeight / 2 - 10);
+          } else {
+            // 输入名字
+            ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "600 28px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+            ctx.fillText("上传成绩 — 输入名字", window.innerWidth / 2, window.innerHeight / 2 - 60);
+            ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.font = "400 16px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+            ctx.fillText(s.nameInput + (Math.floor(performance.now() / 500) % 2 ? "|" : " "), window.innerWidth / 2, window.innerHeight / 2 - 10);
+            ctx.fillStyle = "rgba(255,255,255,0.25)"; ctx.font = "400 12px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+            ctx.fillText("输入后按 Enter 提交", window.innerWidth / 2, window.innerHeight / 2 + 20);
+          }
         } else if (s.submitPhase === 2) {
           ctx.fillStyle = "rgba(100,255,140,0.6)"; ctx.font = "400 16px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
           ctx.fillText(s.submitMsg || "上传成功！", window.innerWidth / 2, window.innerHeight / 2 + 20);

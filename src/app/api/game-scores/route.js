@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { gameScores } from "@/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
 
 // GET — 排行榜
 export async function GET(req) {
@@ -23,18 +23,33 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { mode, score, playerName, config } = body;
+    const { mode, score, playerName, config, overwrite } = body;
     if (!mode || score == null) {
       return NextResponse.json({ error: "mode 和 score 必填" }, { status: 400 });
     }
     const name = (playerName || "匿名").trim().substring(0, 20) || "匿名";
+
+    // 检查同名
+    const existing = await db.select().from(gameScores)
+      .where(and(eq(gameScores.mode, mode), eq(gameScores.playerName, name)))
+      .limit(1);
+
+    if (existing.length > 0 && !overwrite) {
+      return NextResponse.json({ conflict: true, message: "名字已存在，是否覆盖旧成绩？", existingScore: existing[0].score }, { status: 409 });
+    }
+
+    // 覆盖：删旧插新
+    if (existing.length > 0 && overwrite) {
+      await db.delete(gameScores).where(and(eq(gameScores.mode, mode), eq(gameScores.playerName, name)));
+    }
+
     const id = crypto.randomUUID();
     await db.insert(gameScores).values({
       id, mode, score: Math.round(score),
       playerName: name,
       config: config ? JSON.stringify(config) : null,
     });
-    return NextResponse.json({ ok: true, id }, { status: 201 });
+    return NextResponse.json({ ok: true, id, overwritten: existing.length > 0 }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
