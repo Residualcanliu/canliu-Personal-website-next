@@ -708,7 +708,7 @@ const BlackHole = forwardRef(function BlackHole({ onReady }, ref) {
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("keydown", handleKey);
       window.removeEventListener("resize", handleResize);
-      gl.deleteProgram(program);
+      overlayDiv.remove();
       gl.deleteShader(vs);
       gl.deleteShader(fs);
       gl.deleteVertexArray(vao);
