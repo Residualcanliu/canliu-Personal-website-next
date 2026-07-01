@@ -7,6 +7,7 @@ export default function StarCollector({ onBack }) {
   const stateRef = useRef(null);
   const loopRef = useRef(null);
   const cursorRef = useRef(null);
+  const menuRef = useRef(null);
   const [mode, setMode] = useState(null);     // null=选择画面, "timed"=计时, "lives"=生命
   const [cursor, setCursor] = useState("default");
   useEffect(() => { cursorRef.current = setCursor; }, []);
@@ -20,6 +21,7 @@ export default function StarCollector({ onBack }) {
     setMode(null);
     setCursor("default");
   }, []);
+  useEffect(() => { menuRef.current = backToMenu; }, [backToMenu]);
 
   const init = useCallback(() => {
     const canvas = canvasRef.current;
@@ -35,14 +37,14 @@ export default function StarCollector({ onBack }) {
       a: Math.random() * 0.5 + 0.2, tw: Math.random() * Math.PI * 2,
     }));
 
-    const BASKET_W = 90, BASKET_H = 28;
+    const BASKET_W = 130, BASKET_H = 30;
 
     const s = {
       mode, score: 0, lives: 3, timeLeft: 60, gameOver: false, paused: false,
       basketX: window.innerWidth / 2,
       items: [],
-      spawnTimer: 0, spawnGap: 55,
-      speedMul: 1,
+      spawnTimer: 0, spawnGap: 80,
+      speedMul: 0.6,
       keys: {},
       high: 0,
       comboFlash: 0,
@@ -70,7 +72,7 @@ export default function StarCollector({ onBack }) {
         y: -20,
         type,
         vy: (1.5 + Math.random() * 1.8) * s.speedMul,
-        r: type === "bomb" ? 10 : type === "bstar" ? 8 : 12,
+        r: type === "bomb" ? 14 : type === "bstar" ? 12 : 16,
         glow: Math.random() * 0.4 + 0.6,
       };
     }
@@ -192,8 +194,8 @@ export default function StarCollector({ onBack }) {
           } else {
             s.score += it.type === "bstar" ? 3 : 1;
             s.comboFlash = 8;
-            s.speedMul = 1 + Math.floor(Math.max(0, s.score) / 10) * 0.35;
-            s.spawnGap = Math.max(18, 55 - Math.floor(Math.max(0, s.score) / 10) * 4);
+            s.speedMul = 0.6 + Math.floor(Math.max(0, s.score) / 8) * 0.3;
+            s.spawnGap = Math.max(25, 80 - Math.floor(Math.max(0, s.score) / 8) * 4);
           }
           s.items.splice(i, 1);
           continue;
@@ -216,25 +218,22 @@ export default function StarCollector({ onBack }) {
       }
 
       // HUD
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.font = "600 22px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText("SCORE: " + s.score, 24, 44);
-      if (s.mode === "timed") {
-        ctx.fillStyle = s.timeLeft <= 10 ? "rgba(255,100,100,0.9)" : "rgba(255,255,255,0.5)";
-        ctx.font = "400 14px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-        ctx.fillText("TIME: " + s.timeLeft.toFixed(1) + "s", 24, 66);
-      } else {
-        ctx.fillStyle = s.lives <= 1 ? "rgba(255,100,100,0.9)" : "rgba(255,255,255,0.5)";
-        ctx.font = "400 14px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-        ctx.fillText("LIVES: " + "o".repeat(Math.max(0, s.lives)), 24, 66);
-      }
-      ctx.fillStyle = "rgba(255,255,255,0.25)";
-      ctx.font = "400 13px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText("HIGH: " + s.high, window.innerWidth - 24, 44);
       ctx.textAlign = "center";
-      ctx.fillText("移动鼠标或按 A/D / ← → 接住星星", window.innerWidth / 2, window.innerHeight - 24);
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = "600 36px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      ctx.fillText(s.score, window.innerWidth / 2, 70);
+      ctx.font = "400 15px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      if (s.mode === "timed") {
+        ctx.fillStyle = s.timeLeft <= 10 ? "rgba(255,100,100,0.9)" : "rgba(255,255,255,0.45)";
+        ctx.fillText(s.timeLeft.toFixed(1) + "s", window.innerWidth / 2, 96);
+      } else {
+        ctx.fillStyle = s.lives <= 1 ? "rgba(255,100,100,0.9)" : "rgba(255,255,255,0.45)";
+        ctx.fillText("o".repeat(Math.max(0, s.lives)), window.innerWidth / 2, 96);
+      }
+      ctx.fillStyle = "rgba(255,255,255,0.2)";
+      ctx.font = "400 12px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+      ctx.fillText("HIGH: " + s.high, window.innerWidth / 2, 118);
+      ctx.fillText("移动鼠标或 A/D / ← → 接住星星", window.innerWidth / 2, window.innerHeight - 24);
       ctx.textAlign = "left";
 
       if (s.gameOver) {
@@ -254,15 +253,11 @@ export default function StarCollector({ onBack }) {
         ctx.font = "400 16px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
         ctx.fillText("点击任意位置返回菜单", window.innerWidth / 2, window.innerHeight / 2 + 30);
 
-        const restart = () => {
-          canvas.removeEventListener("click", restart);
-          cursorRef.current?.("none");
-          s.score = 0; s.lives = 3; s.gameOver = false; s.timeLeft = 60;
-          s.items = []; s.spawnTimer = 0; s.speedMul = 1; s.spawnGap = 55;
-          s.startTime = performance.now();
-          requestAnimationFrame(loopRef.current);
+        const goMenu = () => {
+          canvas.removeEventListener("click", goMenu);
+          menuRef.current?.();
         };
-        canvas.addEventListener("click", restart);
+        canvas.addEventListener("click", goMenu);
       }
 
       if (!s.gameOver) requestAnimationFrame(loop);
