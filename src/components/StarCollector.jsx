@@ -64,21 +64,19 @@ export default function StarCollector({ onBack }) {
       if (s.countdown <= 0) clearInterval(cdTimer);
     }, 800) : null;
 
-    let mouseIn = true;
-    const onMouse = (e) => { if (mouseIn) s.basketX = e.clientX; };
+    const onMouse = (e) => {
+      s.basketX += e.movementX * 1.2;
+      s.basketX = Math.max(BASKET_W / 2, Math.min(window.innerWidth - BASKET_W / 2, s.basketX));
+    };
     const onTouch = (e) => { e.preventDefault(); s.basketX = e.touches[0].clientX; };
     const onKeyDown = (e) => { s.keys[e.key] = true; };
     const onKeyUp = (e) => { s.keys[e.key] = false; };
-    const onMouseLeave = () => { mouseIn = false; };
-    const onMouseEnter = () => { mouseIn = true; };
 
     window.addEventListener("resize", resize);
     window.addEventListener("mousemove", onMouse);
     window.addEventListener("touchmove", onTouch, { passive: false });
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
-    document.addEventListener("mouseleave", onMouseLeave);
-    document.addEventListener("mouseenter", onMouseEnter);
 
     function spawnItem() {
       const types = ["star", "star", "star", "star", "star", "bstar", "bstar", "bomb"];
@@ -308,8 +306,6 @@ export default function StarCollector({ onBack }) {
       window.removeEventListener("touchmove", onTouch);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
-      document.removeEventListener("mouseleave", onMouseLeave);
-      document.removeEventListener("mouseenter", onMouseEnter);
       s.paused = true;
     };
   }, [mode]);
