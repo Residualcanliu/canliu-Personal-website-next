@@ -111,7 +111,7 @@ export default function StarCollector({ onBack, onModeChange }) {
 
     // ── 状态 ──
     const s = {
-      mode, score: 0, lives: 3, timeLeft: 60, gameOver: false, paused: false,
+      mode, score: 0, lives: mode === "abyss" ? 1 : 3, timeLeft: 60, gameOver: false, paused: false,
       countdown: countdownRef.current,
       basketX: window.innerWidth / 2,
       items: [],
@@ -185,11 +185,17 @@ export default function StarCollector({ onBack, onModeChange }) {
           vy: (1.5 + Math.random() * 1.8) * s.speedMul,
           r: 14, glow: 0.8, skillType: SKILLS[Math.floor(Math.random() * SKILLS.length)] };
       }
-      // 狂热：无炸弹，大量星星
-      const types = s.feverActive
-        ? ["star","star","star","star","star","star","bstar","bstar"]
-        : ["star","star","star","star","star","bstar","bstar","bomb"];
-      const type = types[Math.floor(Math.random() * types.length)];
+      // 炸弹概率随分数递增：12.5% → 45% (每15分+7.5%)，狂热无炸弹
+      const bombChance = s.feverActive ? 0 : Math.min(0.45, 0.125 + Math.floor(Math.max(0, s.score) / 15) * 0.075);
+      const rand = Math.random();
+      let type;
+      if (rand < bombChance) {
+        type = "bomb";
+      } else if (rand < bombChance + (1 - bombChance) * (2/7)) {
+        type = "bstar";
+      } else {
+        type = "star";
+      }
       return {
         x: 30 + Math.random() * (window.innerWidth - 60), y: -20, type,
         vy: (1.5 + Math.random() * 1.8) * s.speedMul,
@@ -431,7 +437,9 @@ export default function StarCollector({ onBack, onModeChange }) {
             // 狂热进度
             if (!s.feverActive) { s.feverProgress += it.type === "bstar" ? 3 : 1; if (s.feverProgress >= s.feverMax) { s.feverActive = true; s.feverEnd = performance.now() + 7000; s.feverProgress = s.feverMax; } }
             s.comboFlash = 8;
-            if (!s.abyss) {
+            if (s.abyss) {
+              s.spawnGap = Math.max(40, 60 - Math.floor(Math.max(0, s.score) / 20) * 2);
+            } else {
               s.speedMul = 0.5 + Math.floor(Math.max(0, s.score) / 12) * 0.2;
               s.spawnGap = Math.max(22, 60 - Math.floor(Math.max(0, s.score) / 12) * 3);
             }
