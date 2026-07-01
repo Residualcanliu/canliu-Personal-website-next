@@ -51,7 +51,7 @@ function Leaderboard() {
 
   return (
     <div style={{
-      position: "fixed", top: 0, right: 0, width: 230, height: "100vh",
+      position: "fixed", top: 0, right: 0, width: 290, height: "100vh",
       background: "rgba(4,4,16,0.85)", borderLeft: "1px solid rgba(255,255,255,0.06)",
       zIndex: 10, color: "#fff", overflowY: "auto",
       fontFamily: "\"PingFang SC\",\"Microsoft YaHei UI\",sans-serif",
@@ -111,11 +111,12 @@ function Leaderboard() {
 
 export default function SagittariusPage() {
   const router = useRouter();
+  const [showLB, setShowLB] = useState(true);
 
   return (
     <div style={{ width: "100vw", height: "100vh", overflow: "hidden", background: "#050510", position: "relative" }}>
-      <StarCollector onBack={() => router.push("/")} />
-      <Leaderboard />
+      <StarCollector onBack={() => router.push("/")} onModeChange={(m, cfg) => setShowLB(m === null || cfg)} />
+      {showLB && <Leaderboard />}
       {/* 返回按钮 */}
       <a
         onClick={() => router.push("/")}

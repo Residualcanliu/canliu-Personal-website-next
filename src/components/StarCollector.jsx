@@ -25,7 +25,7 @@ const SKILLS = [
   { id: "shield",  label: "护盾",  color: "#ffffff", dur: 0,  desc: "挡一次炸弹" },
 ];
 
-export default function StarCollector({ onBack }) {
+export default function StarCollector({ onBack, onModeChange }) {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
   const loopRef = useRef(null);
@@ -48,6 +48,7 @@ export default function StarCollector({ onBack }) {
     setShowAbyssCfg(false);
   }, []);
   useEffect(() => { menuRef.current = backToMenu; }, [backToMenu]);
+  useEffect(() => { onModeChange?.(mode, showAbyssCfg); }, [mode, showAbyssCfg, onModeChange]);
 
   // ── 游戏核心 ──
   const init = useCallback(() => {
@@ -106,6 +107,7 @@ export default function StarCollector({ onBack }) {
     const sfxBlue = () => { playSfx(660,"sine",0.2,0.22,1.6); setTimeout(()=>playSfx(1100,"sine",0.15,0.14,1.2),80); };
     const sfxBomb = () => { playSfx(100,"sawtooth",0.25,0.2,0.5); };
     const sfxSkill = () => { playSfx(440,"sine",0.15,0.15,2.0); setTimeout(()=>playSfx(880,"sine",0.12,0.12,1.5),60); };
+    const sfxShieldBreak = () => { for (let i=0;i<5;i++) setTimeout(()=>playSfx(1800+i*300,"square",0.06,0.08,0.4),i*25); };
 
     // ── 状态 ──
     const s = {
@@ -113,7 +115,7 @@ export default function StarCollector({ onBack }) {
       countdown: countdownRef.current,
       basketX: window.innerWidth / 2,
       items: [],
-      spawnTimer: 0, spawnGap: 85,
+      spawnTimer: 0, spawnGap: 60,
       speedMul: baseFS,
       keys: {},
       high: 0,
@@ -125,10 +127,12 @@ export default function StarCollector({ onBack }) {
       baseBW, baseMS,
       // 技能 buff
       buffs: [],        // { id, label, color, endTime }
-      shield: false,
+      shieldCount: 0,
       doubleScore: false,
       magnetActive: false,
       speedActive: false,
+      // 狂热
+      feverProgress: 0, feverMax: 30, feverActive: false, feverEnd: 0,
       // 排行榜提交
       submitPhase: 0, playerName: "", nameInput: "", submitMsg: "",
     };
@@ -161,13 +165,16 @@ export default function StarCollector({ onBack }) {
 
     // ── 生成物品（含技能球）──
     function spawnItem() {
-      // 深渊模式：~1/15 概率出技能球
+      // 深渊模式：技能球
       if (s.abyss && Math.random() < 0.07) {
         return { x: 30 + Math.random() * (window.innerWidth - 60), y: -20, type: "skill",
           vy: (1.5 + Math.random() * 1.8) * s.speedMul,
           r: 14, glow: 0.8, skillType: SKILLS[Math.floor(Math.random() * SKILLS.length)] };
       }
-      const types = ["star","star","star","star","star","bstar","bstar","bomb"];
+      // 狂热：无炸弹，大量星星
+      const types = s.feverActive
+        ? ["star","star","star","star","star","star","bstar","bstar"]
+        : ["star","star","star","star","star","bstar","bstar","bomb"];
       const type = types[Math.floor(Math.random() * types.length)];
       return {
         x: 30 + Math.random() * (window.innerWidth - 60), y: -20, type,
@@ -250,9 +257,13 @@ export default function StarCollector({ onBack }) {
     }
 
     // ── buff 管理 ──
+    function refreshShieldBuff() {
+      s.buffs = s.buffs.filter(b => b.id !== "shield");
+      if (s.shieldCount > 0) s.buffs.push({ id:"shield", label:"护盾 x"+s.shieldCount, color:"#ffffff", endTime: Infinity });
+    }
     function applySkill(sk) {
       const now = performance.now();
-      if (sk.id === "shield") { s.shield = true; s.buffs.push({ ...sk, endTime: Infinity }); return; }
+      if (sk.id === "shield") { s.shieldCount++; refreshShieldBuff(); return; }
       // 同类型刷新时间
       const exist = s.buffs.find(b => b.id === sk.id);
       const durMs = sk.dur * 1000;
@@ -303,8 +314,9 @@ export default function StarCollector({ onBack }) {
         requestAnimationFrame(loop); return;
       }
 
-      // buff 计时
+      // buff + 狂热计时
       tickBuffs();
+      if (s.feverActive && performance.now() >= s.feverEnd) { s.feverActive = false; s.feverProgress = 0; }
 
       // 游戏结束
       if (s.gameOver) {
@@ -373,9 +385,10 @@ export default function StarCollector({ onBack }) {
         if (s.timeLeft <= 0) s.gameOver = true;
       }
 
-      // 生成
+      // 生成（狂热时加速）
+      const gap = s.feverActive ? 15 : s.spawnGap;
       s.spawnTimer++;
-      if (s.spawnTimer >= s.spawnGap) { s.spawnTimer = 0; s.items.push(spawnItem()); }
+      if (s.spawnTimer >= gap) { s.spawnTimer = 0; s.items.push(spawnItem()); }
 
       // 更新物品
       for (let i = s.items.length - 1; i >= 0; i--) {
@@ -384,7 +397,7 @@ export default function StarCollector({ onBack }) {
         drawItem(it);
         if (checkHit(it)) {
           if (it.type === "bomb") {
-            if (s.shield) { s.shield = false; s.buffs = s.buffs.filter(b => b.id !== "shield"); }
+            if (s.shieldCount > 0) { sfxShieldBreak(); s.shieldCount--; refreshShieldBuff(); }
             else { sfxBomb(); if (s.mode === "lives" || s.abyss) { s.lives--; if (s.lives <= 0) s.gameOver = true; } else { s.score = Math.max(0, s.score - 3); } }
             s.comboFlash = 12;
           } else if (it.type === "skill") {
@@ -393,10 +406,12 @@ export default function StarCollector({ onBack }) {
             if (it.type === "bstar") sfxBlue(); else sfxStar();
             const pts = (it.type === "bstar" ? 3 : 1) * (s.doubleScore ? 2 : 1);
             s.score += Math.round(pts * s.scoreMul);
+            // 狂热进度
+            if (!s.feverActive) { s.feverProgress += it.type === "bstar" ? 3 : 1; if (s.feverProgress >= s.feverMax) { s.feverActive = true; s.feverEnd = performance.now() + 7000; s.feverProgress = s.feverMax; } }
             s.comboFlash = 8;
             if (!s.abyss) {
               s.speedMul = 0.5 + Math.floor(Math.max(0, s.score) / 12) * 0.2;
-              s.spawnGap = Math.max(35, 85 - Math.floor(Math.max(0, s.score) / 12) * 4);
+              s.spawnGap = Math.max(22, 60 - Math.floor(Math.max(0, s.score) / 12) * 3);
             }
           }
           s.items.splice(i, 1); continue;
@@ -415,13 +430,30 @@ export default function StarCollector({ onBack }) {
 
       // ── HUD ──
       ctx.textAlign = "center";
+
+      // 狂热进度条
+      const barW = 200, barH = 6, barX = window.innerWidth / 2 - barW / 2, barY = 24;
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      ctx.fillRect(barX, barY, barW, barH);
+      const prog = Math.min(1, s.feverProgress / s.feverMax);
+      if (s.feverActive) {
+        const pulse = 0.7 + 0.3 * Math.sin(performance.now() / 200);
+        ctx.fillStyle = `rgba(255,200,60,${pulse})`;
+        ctx.fillRect(barX, barY, barW, barH);
+        ctx.fillStyle = "rgba(255,200,60,0.9)"; ctx.font = "600 12px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
+        ctx.fillText("FEVER! " + Math.max(0, ((s.feverEnd - performance.now()) / 1000)).toFixed(1) + "s", window.innerWidth / 2, barY - 6);
+      } else if (prog > 0) {
+        ctx.fillStyle = "rgba(140,180,255,0.5)";
+        ctx.fillRect(barX, barY, barW * prog, barH);
+      }
+
       ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.font = "400 13px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      ctx.fillText("分数", window.innerWidth / 2, 34);
+      ctx.fillText("分数", window.innerWidth / 2, barY + 30);
       ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "600 40px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
-      ctx.fillText(s.score, window.innerWidth / 2, 72);
+      ctx.fillText(s.score, window.innerWidth / 2, 92);
 
       // 深渊：倍率
-      let nextY = 110;
+      let nextY = 132;
       if (s.abyss) {
         ctx.fillStyle = s.scoreMul >= 2 ? "rgba(255,180,60,0.7)" : "rgba(255,255,255,0.3)";
         ctx.font = "400 15px \"PingFang SC\",\"Microsoft YaHei UI\",sans-serif";
