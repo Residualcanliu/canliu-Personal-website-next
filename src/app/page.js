@@ -126,9 +126,10 @@ export default function Home() {
   }, [current]);
 
   const show = useCallback((id) => {
+    if (id === "sg") return router.push("/sagittarius");
     if (current === id) return setCurrent(null);
     setCurrent(id);
-  }, [current]);
+  }, [current, router]);
 
   const hide = useCallback(() => setCurrent(null), []);
   const miniBtn = { width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", fontSize: "0.6rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
@@ -247,7 +248,7 @@ export default function Home() {
 
         <div className="links">
           {PAGES.map((p) => (
-            <a key={p.id} onClick={() => { if (p.id === "home") hide(); else if (p.id === "sg") router.push("/sagittarius"); else show(p.id); }}>
+            <a key={p.id} onClick={() => (p.id === "home" ? hide() : show(p.id))}>
               {p.label}
             </a>
           ))}
@@ -255,8 +256,7 @@ export default function Home() {
       </nav>
 
       {CORNERS.map((cz) => (
-        <div key={cz.cls} className={`cz ${cz.cls}`} title={cz.title}
-          onClick={() => cz.page === "sg" ? router.push("/sagittarius") : show(cz.page)}
+        <div key={cz.cls} className={`cz ${cz.cls}`} title={cz.title} onClick={() => show(cz.page)}
           style={cz.cls === "sg" ? { border: "1px solid rgba(180,210,255,0.25)", borderRadius: "50%" } : undefined} />
       ))}
 
